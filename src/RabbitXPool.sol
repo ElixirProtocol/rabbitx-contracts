@@ -6,6 +6,7 @@ import "../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {Initializable} from "openzeppelin-upgradeable/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "openzeppelin-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {OwnableUpgradeable} from "openzeppelin-upgradeable/access/OwnableUpgradeable.sol";
+import {AccessControlUpgradeable} from "openzeppelin-upgradeable/access/AccessControlUpgradeable.sol";
 
 import {IRabbitX} from "src/interfaces/IRabbitx.sol";
 
@@ -13,8 +14,7 @@ import {IRabbitX} from "src/interfaces/IRabbitx.sol";
 /// @author The Elixir Team
 /// @custom:security-contact security@elixir.finance
 /// @notice Pool implementation logic for RabbitX minimal proxy pools.
-contract RabbitXPool is Initializable, UUPSUpgradeable, OwnableUpgradeable {
-    
+contract RabbitXPool is Initializable, UUPSUpgradeable, OwnableUpgradeable, AccessControlUpgradeable {
     /*//////////////////////////////////////////////////////////////
                                 VARIABLES
     //////////////////////////////////////////////////////////////*/
@@ -70,33 +70,21 @@ contract RabbitXPool is Initializable, UUPSUpgradeable, OwnableUpgradeable {
                         DEPOSIT/WITHDRAWAL ENTRY
     //////////////////////////////////////////////////////////////*/
 
-    /**
-     * @notice transfers funds from the vault to the rabbit exchange contract
-     *
-     * @dev the vault must have at least the specified amount before calling this function
-     * @dev the caller must have the DEPOSITOR_ROLE
-     *
-     * @param amount the amount of tokens to transfer
-     */
-    function makeDeposit(uint256 amount) external {
+    /// @notice Deposits funds into the pool, which is redirected to RabbitX.
+    /// @param amount The amount of tokens to deposit.
+    function deposit(uint256 amount) external {
         require(signers[msg.sender][DEPOSITOR_ROLE], "NOT_A_DEPOSITOR");
         emit Deposit(msg.sender, amount);
         paymentToken.approve(address(rabbit), amount);
         rabbit.deposit(amount);
     }
 
-    /**
-     * @notice withdraws funds from the vault
-     *
-     * @dev the vault must already have a sufficient token balance,
-     * calling this function does not withdraw funds from the rabbit
-     * exchange to the vault
-     * @dev only the vault owner can call this function
-     *
-     * @param amount the amount of tokens to withdraw
-     * @param to the address to which to send the tokens
-     */
-    function withdrawTokensTo(uint256 amount, address to) external onlyOwner {
+    /// @notice Deposits funds into the pool, which is redirected to RabbitX.
+    /// @dev The vault must already have a sufficient token balance, calling this function does not withdraw funds from the rabbit exchange to the vault
+    /// @dev Only the vault owner can call this function
+    /// @param amount The amount of tokens to withdraw.
+    /// @param to The address to which to send the tokens.
+    function withdraw(uint256 amount, address to) external onlyOwner {
         require(amount > 0, "WRONG_AMOUNT");
         require(to != address(0), "ZERO_ADDRESS");
         emit WithdrawTo(to, amount);
@@ -104,13 +92,12 @@ contract RabbitXPool is Initializable, UUPSUpgradeable, OwnableUpgradeable {
         require(success, "TRANSFER_FAILED");
     }
 
-    /**
-     * @notice does the user have the ADMIN_ROLE - which gives
-     * the ability to add and remove roles for other users
-     *
-     * @param user the address to check
-     * @return true if the user has the ADMIN_ROLE
-     */
+    /*//////////////////////////////////////////////////////////////
+                                HELPERS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Check if a user has the admin role.
+    /// @param user The user to check.
     function isAdmin(address user) public view returns (bool) {
         return signers[user][ADMIN_ROLE];
     }
@@ -123,6 +110,7 @@ contract RabbitXPool is Initializable, UUPSUpgradeable, OwnableUpgradeable {
      *
      * @param user the address to give the ADMIN_ROLE to
      */
+    ///
     function addAdmin(address user) external {
         addRole(user, ADMIN_ROLE);
     }
