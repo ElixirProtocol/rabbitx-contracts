@@ -2,6 +2,7 @@
 pragma solidity 0.8.20;
 
 import {Clones} from "openzeppelin/proxy/Clones.sol";
+import {RabbitXPool} from "src/RabbitXPool.sol";
 
 /// @title Pool factory
 /// @author The Elixir Team
@@ -46,11 +47,14 @@ contract RabbitXPoolFactory {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Deploys a proxy that points to the given implementation.
-    function deployPool(bytes memory _data, bytes32 _salt) external returns (address deployedProxy) {
-        bytes32 salthash = keccak256(abi.encodePacked(msg.sender, _salt));
+    // TODO: only owner to deploy.
+    function deployPool(address rabbit, address token) external returns (address deployedProxy) {
+        bytes32 salthash = keccak256(abi.encodePacked(msg.sender, token));
         deployedProxy = Clones.cloneDeterministic(implementation, salthash);
 
         pools[deployedProxy] = true;
+
+        RabbitXPool(deployedProxy).initialize(msg.sender, rabbit, token);
 
         emit PoolDeployed(implementation, deployedProxy, msg.sender);
 

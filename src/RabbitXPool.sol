@@ -110,8 +110,6 @@ contract RabbitXPool is Initializable, UUPSUpgradeable, OwnableUpgradeable, Acce
                                 HELPERS
     //////////////////////////////////////////////////////////////*/
 
-    // TODO: implement roles: admin, trader, depoistor, signer
-
     /// @notice Updates the RabbitX smart contract address.
     /// @param _rabbit The address of the RabbitX smart contract.
     function setRabbit(address _rabbit) external onlyOwner {
