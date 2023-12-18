@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.20;
 
-import "../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
+import {SafeERC20} from "openzeppelin/token/ERC20/utils/SafeERC20.sol";
 
 import {Initializable} from "openzeppelin-upgradeable/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "openzeppelin-upgradeable/proxy/utils/UUPSUpgradeable.sol";
@@ -15,6 +16,8 @@ import {IRabbitX} from "src/interfaces/IRabbitx.sol";
 /// @custom:security-contact security@elixir.finance
 /// @notice Pool implementation logic for RabbitX minimal proxy pools.
 contract RabbitXPool is Initializable, UUPSUpgradeable, OwnableUpgradeable, AccessControlUpgradeable {
+    using SafeERC20 for IERC20;
+
     /*//////////////////////////////////////////////////////////////
                                 VARIABLES
     //////////////////////////////////////////////////////////////*/
@@ -83,6 +86,7 @@ contract RabbitXPool is Initializable, UUPSUpgradeable, OwnableUpgradeable, Acce
     /// @notice Deposits funds into the pool, which is redirected to RabbitX.
     /// @param amount The amount of tokens to deposit.
     function deposit(uint256 amount) external {
+        if (amount == 0) revert InvalidAmount(amount);
         if (!hasRole(DEPOSITOR_ROLE, msg.sender)) revert NotDepositor();
 
         paymentToken.approve(address(rabbit), amount);
@@ -100,8 +104,8 @@ contract RabbitXPool is Initializable, UUPSUpgradeable, OwnableUpgradeable, Acce
         if (amount == 0) revert InvalidAmount(amount);
         if (to == address(0)) revert InvalidAddress(to);
 
-        bool success = _makeTransfer(to, amount);
-        require(success, "TRANSFER_FAILED");
+        // Transfer the tokens to the receiver.
+        paymentToken.safeTransfer(to, amount);
 
         emit Withdraw(to, amount);
     }
@@ -114,18 +118,6 @@ contract RabbitXPool is Initializable, UUPSUpgradeable, OwnableUpgradeable, Acce
     /// @param _rabbit The address of the RabbitX smart contract.
     function setRabbit(address _rabbit) external onlyOwner {
         rabbit = IRabbitX(_rabbit);
-    }
-
-    function _makeTransfer(address to, uint256 amount) private returns (bool success) {
-        return _tokenCall(abi.encodeWithSelector(paymentToken.transfer.selector, to, amount));
-    }
-
-    function _tokenCall(bytes memory data) private returns (bool) {
-        (bool success, bytes memory returndata) = address(paymentToken).call(data);
-        if (success && returndata.length > 0) {
-            success = abi.decode(returndata, (bool));
-        }
-        return success;
     }
 
     /*//////////////////////////////////////////////////////////////
