@@ -5,7 +5,6 @@ import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin/token/ERC20/utils/SafeERC20.sol";
 
 import {Initializable} from "openzeppelin-upgradeable/proxy/utils/Initializable.sol";
-import {UUPSUpgradeable} from "openzeppelin-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {OwnableUpgradeable} from "openzeppelin-upgradeable/access/OwnableUpgradeable.sol";
 import {AccessControlUpgradeable} from "openzeppelin-upgradeable/access/AccessControlUpgradeable.sol";
 
@@ -15,7 +14,7 @@ import {IRabbitX} from "src/interfaces/IRabbitx.sol";
 /// @author The Elixir Team
 /// @custom:security-contact security@elixir.finance
 /// @notice Pool implementation logic for RabbitX minimal proxy pools.
-contract RabbitXPool is Initializable, UUPSUpgradeable, OwnableUpgradeable, AccessControlUpgradeable {
+contract RabbitXPool is Initializable, OwnableUpgradeable, AccessControlUpgradeable {
     using SafeERC20 for IERC20;
 
     /*//////////////////////////////////////////////////////////////
@@ -65,7 +64,6 @@ contract RabbitXPool is Initializable, UUPSUpgradeable, OwnableUpgradeable, Acce
 
     /// @notice No constructor in upgradable contracts, so initialized with this function.
     function initialize(address _owner, address _rabbit, address _paymentToken) public initializer {
-        __UUPSUpgradeable_init();
         __Ownable_init(_owner);
         __AccessControl_init();
 
@@ -119,11 +117,4 @@ contract RabbitXPool is Initializable, UUPSUpgradeable, OwnableUpgradeable, Acce
     function setRabbit(address _rabbit) external onlyOwner {
         rabbit = IRabbitX(_rabbit);
     }
-
-    /*//////////////////////////////////////////////////////////////
-                               UPGRADE
-    //////////////////////////////////////////////////////////////*/
-
-    /// @dev Upgrades the implementation of the proxy to new address.
-    function _authorizeUpgrade(address) internal override onlyOwner {}
 }

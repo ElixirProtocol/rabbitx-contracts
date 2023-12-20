@@ -1,20 +1,18 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.20;
 
-import {Clones} from "openzeppelin/proxy/Clones.sol";
+import {BeaconProxy} from "openzeppelin/proxy/beacon/BeaconProxy.sol";
+import {UpgradeableBeacon} from "openzeppelin/proxy/beacon/UpgradeableBeacon.sol";
 import {RabbitXPool} from "src/RabbitXPool.sol";
 
 /// @title Pool factory
 /// @author The Elixir Team
 /// @custom:security-contact security@elixir.finance
 /// @notice Pool factory to create RabbitX minimal proxy pools.
-contract RabbitXPoolFactory {
+contract RabbitXPoolFactory is UpgradeableBeacon {
     /*//////////////////////////////////////////////////////////////
                                 VARIABLES
     //////////////////////////////////////////////////////////////*/
-
-    /// @notice The pool implementation
-    address public implementation;
 
     /// @notice The created pools by this factory.
     mapping(address => bool) public pools;
@@ -24,10 +22,11 @@ contract RabbitXPoolFactory {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Emitted when a pool is deployed.
-    /// @param implementation The implementation of the pool.
     /// @param proxy The proxy address of the pool.
     /// @param deployer The deployer of the pool.
-    event PoolDeployed(address indexed implementation, address proxy, address indexed deployer);
+    /// @param rabbit The RabbitX exchange address.
+    /// @param token The token address.
+    event PoolDeployed(address indexed proxy, address indexed deployer, address rabbit, address indexed token);
 
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
@@ -37,30 +36,21 @@ contract RabbitXPoolFactory {
                                CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice The constructor of the factory.
-    constructor(address _implementation) {
-        implementation = _implementation;
-    }
+    /// @notice The constructor of the factory, sets the beacon implementation and owner.
+    constructor(address _implementation) UpgradeableBeacon(_implementation, msg.sender) {}
 
     /*//////////////////////////////////////////////////////////////
                                 FACTORY 
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev Deploys a proxy that points to the given implementation.
-    // TODO: only owner to deploy.
-    function deployPool(address rabbit, address token) external returns (address deployedProxy) {
-        bytes32 salthash = keccak256(abi.encodePacked(msg.sender, token));
-        deployedProxy = Clones.cloneDeterministic(implementation, salthash);
+    /// @dev Deploys a proxy that points to this contract as the beacon for the lastest implementation.
+    function deployPool(address rabbit, address token) external onlyOwner returns (address proxy) {
+        proxy = address(new BeaconProxy(address(this), ""));
 
-        pools[deployedProxy] = true;
+        pools[proxy] = true;
 
-        RabbitXPool(deployedProxy).initialize(msg.sender, rabbit, token);
+        RabbitXPool(proxy).initialize(msg.sender, rabbit, token);
 
-        emit PoolDeployed(implementation, deployedProxy, msg.sender);
-
-        // if (_data.length > 0) {
-        //     // slither-disable-next-line unused-return
-        //     Address.functionCall(deployedProxy, _data);
-        // }
+        emit PoolDeployed(proxy, msg.sender, rabbit, token);
     }
 }

@@ -21,7 +21,6 @@ contract TestRabbitX is Test {
     MockRabbit public rabbit;
 
     // Elixir contracts
-    RabbitXPool public poolImplementation;
     RabbitXPoolFactory public factory;
 
     /*//////////////////////////////////////////////////////////////
@@ -53,23 +52,11 @@ contract TestRabbitX is Test {
 
         vm.startPrank(owner);
 
-        // Deploy pool implementation
-        address _poolImplementation = address(new RabbitXPool());
-
-        // Deploy and initialize the pool implementation proxy contract.
-        poolImplementation = RabbitXPool(
-            address(
-                new ERC1967Proxy(
-                    _poolImplementation,
-                    abi.encodeWithSignature(
-                        "initialize(address,address,address)", address(owner), address(0x69), address(0x420)
-                    )
-                )
-            )
-        );
+        // Deploy pool implementation.
+        address poolImplementation = address(new RabbitXPool());
 
         // Deploy pool factory.
-        factory = new RabbitXPoolFactory(address(poolImplementation));
+        factory = new RabbitXPoolFactory(poolImplementation);
 
         vm.stopPrank();
     }
@@ -88,9 +75,9 @@ contract TestRabbitX is Test {
 
         vm.stopPrank();
 
-        // assertEq(pool.owner(), owner);
-        // assertEq(address(pool.rabbit()), address(rabbit));
+        assertEq(pool.owner(), owner);
+        assertEq(address(pool.rabbit()), address(rabbit));
         pool.rabbit();
-        // assertEq(address(pool.paymentToken()), token);
+        assertEq(address(pool.paymentToken()), token);
     }
 }
