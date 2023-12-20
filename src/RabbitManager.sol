@@ -97,9 +97,8 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
 
     /// @notice Emitted when a claim is made.
     /// @param user The user for which the tokens were claimed.
-    /// @param token The token claimed.
     /// @param amount The token amount claimed.
-    event Claim(address indexed user, address indexed token, uint256 indexed amount);
+    event Claim(address indexed user, uint256 indexed amount);
 
     /// @notice Emitted when the pause statuses are updated.
     /// @param depositPaused True if deposits are paused, false otherwise.
@@ -109,10 +108,9 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
 
     /// @notice Emitted when a pool is added.
     /// @param id The ID of the pool.
-    /// @param poolType The type of the pool.
     /// @param router The router address of the pool.
     /// @param hardcap The hardcap of the pool.
-    event PoolAdded(uint256 indexed id, PoolType poolType, address indexed router, uint256 hardcap);
+    event PoolAdded(uint256 indexed id, address indexed router, uint256 hardcap);
 
     /// @notice Emitted when tokens are added to a pool.
     /// @param id The ID of the pool.
@@ -323,9 +321,8 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
 
     /// @notice Claim received tokens from the pending balance and fees.
     /// @param user The address to claim for.
-    /// @param token The token to claim.
     /// @param id The ID of the pool to claim from.
-    function claim(address user, address token, uint256 id) external whenClaimNotPaused nonReentrant {
+    function claim(address user, uint256 id) external whenClaimNotPaused nonReentrant {
         // Fetch the pool data.
         Pool storage pool = pools[id];
 
@@ -348,13 +345,13 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
         pool.fees[user] = 0;
 
         // Fetch the tokens from the router.
-        RabbitRouter(pool.router).claimToken(token, amount + fee);
+        RabbitRouter(pool.router).claimToken(address(token), amount + fee);
 
         // Transfers the tokens after to prevent reentrancy.
-        IERC20Metadata(token).safeTransfer(owner(), fee);
+        token.safeTransfer(owner(), fee);
         IERC20Metadata(token).safeTransfer(user, amount);
 
-        emit Claim(user, token, amount);
+        emit Claim(user, amount);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -507,9 +504,8 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
     /// @notice Adds a new pool.
     /// @param id The ID of the new pool.
     /// @param hardcap The hardcap for the pool.
-    /// @param poolType The type of the pool.
     /// @param externalAccount The external account to link to RabbitX.
-    function addPool(uint256 id, uint256 hardcap, PoolType poolType, address externalAccount) external onlyOwner {
+    function addPool(uint256 id, uint256 hardcap, address externalAccount) external onlyOwner {
         // Check that the pool doesn't exist.
         if (pools[id].router != address(0)) revert InvalidPool(id);
 
@@ -523,12 +519,12 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
         pools[id].router = address(router);
 
         // Set the pool type.
-        pools[id].poolType = poolType;
+        pools[id].poolType = PoolType.Perp;
 
         // Set the hardcap of the pool.
         pools[id].hardcap = hardcap;
 
-        emit PoolAdded(id, poolType, address(router), hardcap);
+        emit PoolAdded(id, address(router), hardcap);
     }
 
     /// @notice Updates the hardcap of a pool.
@@ -541,10 +537,9 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
     }
 
     /// @notice Rescues any stuck tokens in the contract.
-    /// @param token The token to rescue.
     /// @param amount The amount of token to rescue.
-    function rescue(address token, uint256 amount) external onlyOwner {
-        IERC20Metadata(token).safeTransfer(owner(), amount);
+    function rescue(uint256 amount) external onlyOwner {
+        token.safeTransfer(owner(), amount);
     }
 
     /*//////////////////////////////////////////////////////////////

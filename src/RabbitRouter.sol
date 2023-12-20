@@ -78,7 +78,7 @@ contract RabbitRouter {
     /// @param token The token to approve.
     function makeApproval(address token) external onlyManager {
         // Approve the token transfer.
-        IERC20Metadata(token).approve(address(rabbit), type(uint256).max);
+        IERC20Metadata(token).safeApprove(address(rabbit), type(uint256).max);
     }
 
     /// @notice Allow claims from RabbitManager contract.
