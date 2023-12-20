@@ -78,6 +78,6 @@ contract TestRabbitX is Test {
         assertEq(pool.owner(), owner);
         assertEq(address(pool.rabbit()), address(rabbit));
         pool.rabbit();
-        assertEq(address(pool.paymentToken()), token);
+        assertEq(address(pool.token()), token);
     }
 }
