@@ -1,66 +1,77 @@
-## Foundry
+<img align="right" width="150" height="150" top="100" style="border-radius:99%" src="https://i.imgur.com/H5aZQMA.jpg">
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+# Elixir <> RabbitX Contracts • [![CI](https://github.com/ElixirProtocol/rabbitx-contracts/actions/workflows/test.yml/badge.svg)](https://github.com/ElixirProtocol/rabbitx-contracts/actions/workflows/test.yml)
 
-Foundry consists of:
+## Background
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+This project contains the smart contracts for the Elixir Protocol integration on top of Rabbitx.
+
+See the [documentation](docs/docs.md), the [Elixir Protocol documentation](https://docs.elixir.finance/), and the [RabbitX documentation](https://docs.rabbitx.io/) for more information.
+
+## Deployments
+
+<table>
+</table>
 
 ## Documentation
 
-https://book.getfoundry.sh/
+You can find the technical documentation and references of the smart contracts [here](docs/docs.md). 
 
 ## Usage
 
-### Build
+You will need a copy of [Foundry](https://github.com/foundry-rs/foundry) installed before proceeding. See the [installation guide](https://github.com/foundry-rs/foundry#installation) for details.
 
-```shell
-$ forge build
+To build the contracts:
+
+```sh
+git clone https://github.com/ElixirProtocol/rabbitx-contracts.git
+cd rabbitx-contracts
+forge install
+forge build
 ```
 
-### Test
+### Run Tests
 
-```shell
-$ forge test
+In order to run unit tests, run:
+
+```sh
+forge test
 ```
 
-### Format
+For longer fuzz campaigns, run:
 
-```shell
-$ forge fmt
+```sh
+FOUNDRY_PROFILE="deep" forge test
 ```
 
-### Gas Snapshots
+### Run Slither
 
-```shell
-$ forge snapshot
+After [installing Slither](https://github.com/crytic/slither#how-to-install), run:
+
+```sh
+slither src/
 ```
 
-### Anvil
+### Check coverage
 
-```shell
-$ anvil
+To check the test coverage, run:
+
+```sh
+forge coverage
 ```
 
-### Deploy
+### Update Gas Snapshots
 
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
+To update the gas snapshots, run:
+
+```sh
+forge snapshot
 ```
 
-### Cast
+### Deploy Contracts
 
-```shell
-$ cast <subcommand>
-```
+In order to deploy the contracts, set the relevant constants in the respective chain script, and run the following command(s):
 
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
+```sh
+forge script script/deploy/DeploySepolia.s.sol:DeploySepolia -vvvv --fork-url RPC --broadcast --slow
 ```
