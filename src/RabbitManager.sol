@@ -335,6 +335,8 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
         // Fetch the user's pending balance. No danger if amount is 0.
         uint256 amount = pool.userPendingAmount[user];
 
+        // TODO: Implement Elixir fee in token.
+
         // Fetch Elixir's pending fee balance.
         uint256 fee = pool.fees[user];
 
@@ -450,7 +452,7 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
             pool.activeAmount -= spotTxn.amount;
 
             // Update the user pending balance.
-            pool.userPendingAmount[spot.sender] += (responseTxn.amountToReceive);
+            pool.userPendingAmount[spot.sender] += responseTxn.amountToReceive;
 
             emit Withdraw(address(pool.router), spot.sender, responseTxn.amountToReceive);
         } else {

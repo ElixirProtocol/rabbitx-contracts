@@ -116,387 +116,247 @@ contract TestRabbitManager is Test {
         vm.stopPrank();
     }
 
-    //     /*//////////////////////////////////////////////////////////////
-    //                         DEPOSIT/WITHDRAWAL TESTS
-    //     //////////////////////////////////////////////////////////////*/
-
-    //     /// @notice Unit test for a single deposit and withdraw flor in a perp pool.
-    //     function testSingle(uint72 amountBTC, uint80 amountUSDC, uint256 amountWETH) public {
-    //         // Amounts to deposit should be at least the withdraw fee (otherwise not enough to pay fee).
-    //         vm.assume(amountBTC >= manager.getTransactionFee(address(BTC)));
-    //         vm.assume(amountUSDC >= manager.getTransactionFee(address(USDC)));
-    //         vm.assume(amountWETH >= manager.getTransactionFee(address(WETH)));
-
-    //         deal(address(BTC), address(this), amountBTC);
-    //         deal(address(USDC), address(this), amountUSDC);
-    //         deal(address(WETH), address(this), amountWETH);
-
-    //         BTC.approve(address(manager), amountBTC);
-    //         USDC.approve(address(manager), amountUSDC);
-    //         WETH.approve(address(manager), amountWETH);
-
-    //         manager.depositPerp{value: fee}(2, perpTokens[0], amountBTC, address(this));
-    //         manager.depositPerp{value: fee}(2, perpTokens[1], amountUSDC, address(this));
-    //         manager.depositPerp{value: fee}(2, perpTokens[2], amountWETH, address(this));
-
-    //         processQueue();
-
-    //         (address router, uint256 activeAmountBTC,,) = manager.getPoolToken(2, address(BTC));
-    //         (, uint256 activeAmountUSDC,,) = manager.getPoolToken(2, address(USDC));
-    //         (, uint256 activeAmountWETH,,) = manager.getPoolToken(2, address(WETH));
-
-    //         uint256 userActiveAmountBTC = manager.getUserActiveAmount(2, address(BTC), address(this));
-    //         uint256 userActiveAmountUSDC = manager.getUserActiveAmount(2, address(USDC), address(this));
-    //         uint256 userActiveAmountWETH = manager.getUserActiveAmount(2, address(WETH), address(this));
-
-    //         assertEq(userActiveAmountBTC, amountBTC);
-    //         assertEq(userActiveAmountUSDC, amountUSDC);
-    //         assertEq(activeAmountWETH, amountWETH);
-
-    //         assertEq(userActiveAmountBTC, activeAmountBTC);
-    //         assertEq(userActiveAmountUSDC, activeAmountUSDC);
-    //         assertEq(userActiveAmountWETH, activeAmountWETH);
-
-    //         assertEq(sumPendingBalance(address(BTC), address(this)), 0);
-    //         assertEq(sumPendingBalance(address(USDC), address(this)), 0);
-    //         assertEq(sumPendingBalance(address(WETH), address(this)), 0);
-
-    //         // Advance time for deposit slow-mode tx.
-    //         processSlowModeTxs();
-
-    //         manager.withdrawPerp{value: fee}(2, perpTokens[0], amountBTC);
-    //         manager.withdrawPerp{value: fee}(2, perpTokens[1], amountUSDC);
-    //         manager.withdrawPerp{value: fee}(2, perpTokens[2], amountWETH);
-
-    //         (, activeAmountBTC,,) = manager.getPoolToken(2, address(BTC));
-    //         (, activeAmountUSDC,,) = manager.getPoolToken(2, address(USDC));
-    //         (, activeAmountWETH,,) = manager.getPoolToken(2, address(WETH));
-
-    //         userActiveAmountBTC = manager.getUserActiveAmount(2, address(BTC), address(this));
-    //         userActiveAmountUSDC = manager.getUserActiveAmount(2, address(USDC), address(this));
-    //         userActiveAmountWETH = manager.getUserActiveAmount(2, address(WETH), address(this));
-
-    //         assertEq(manager.getUserActiveAmount(2, address(BTC), address(this)), activeAmountBTC);
-    //         assertEq(manager.getUserActiveAmount(2, address(USDC), address(this)), activeAmountUSDC);
-    //         assertEq(manager.getUserActiveAmount(2, address(WETH), address(this)), activeAmountWETH);
-
-    //         assertEq(uint256(manager.queueCount()), perpTokens.length * 2);
-
-    //         // Process queue.
-    //         processQueue();
-
-    //         assertEq(manager.getUserActiveAmount(2, address(BTC), address(this)), 0);
-    //         assertEq(manager.getUserActiveAmount(2, address(USDC), address(this)), 0);
-    //         assertEq(manager.getUserActiveAmount(2, address(WETH), address(this)), 0);
-
-    //         assertEq(sumPendingBalance(address(BTC), address(this)), amountBTC - manager.getTransactionFee(address(BTC)));
-    //         assertEq(sumPendingBalance(address(USDC), address(this)), amountUSDC - manager.getTransactionFee(address(USDC)));
-    //         assertLe(sumPendingBalance(address(WETH), address(this)), amountWETH - manager.getTransactionFee(address(WETH)));
-
-    //         // Advance time for withdraw slow-mode tx.
-    //         processSlowModeTxs();
-    //         deal(address(BTC), router, amountBTC);
-    //         deal(address(USDC), router, amountUSDC);
-    //         deal(address(WETH), router, amountWETH);
-
-    //         // Claim tokens for user and owner.
-    //         manager.claim(address(this), perpTokens[0], 2);
-    //         manager.claim(address(this), perpTokens[1], 2);
-    //         manager.claim(address(this), perpTokens[2], 2);
-
-    //         assertEq(sumPendingBalance(address(BTC), address(this)), 0);
-    //         assertEq(sumPendingBalance(address(USDC), address(this)), 0);
-    //         assertEq(sumPendingBalance(address(WETH), address(this)), 0);
-    //         assertEq(BTC.balanceOf(address(this)), amountBTC - manager.getTransactionFee(address(BTC)));
-    //         assertEq(USDC.balanceOf(address(this)), amountUSDC - manager.getTransactionFee(address(USDC)));
-    //         assertLe(WETH.balanceOf(address(this)), amountWETH - manager.getTransactionFee(address(WETH)));
-    //         assertEq(BTC.balanceOf(owner), manager.getTransactionFee(address(BTC)));
-    //     }
-
-    //     /// @notice Unit test for a double deposit and withdraw flow in a perp pool.
-    //     function testDouble(uint144 amountBTC, uint160 amountUSDC, uint256 amountWETH) public {
-    //         // Amounts to deposit should be at least the withdraw fee (otherwise not enough to pay fee for withdrawals).
-    //         vm.assume(amountBTC >= manager.getTransactionFee(address(BTC)) && amountBTC <= type(uint72).max);
-    //         vm.assume(amountUSDC >= manager.getTransactionFee(address(USDC)) && amountUSDC <= type(uint80).max);
-    //         vm.assume(amountWETH >= manager.getTransactionFee(address(WETH)) && amountWETH <= type(uint128).max);
-
-    //         deal(address(BTC), address(this), amountBTC * 2);
-    //         deal(address(USDC), address(this), amountUSDC * 2);
-    //         deal(address(WETH), address(this), amountWETH * 2);
-
-    //         BTC.approve(address(manager), amountBTC * 2);
-    //         USDC.approve(address(manager), amountUSDC * 2);
-    //         WETH.approve(address(manager), amountWETH * 2);
-
-    //         manager.depositPerp{value: fee}(2, perpTokens[0], amountBTC, address(this));
-    //         manager.depositPerp{value: fee}(2, perpTokens[1], amountUSDC, address(this));
-    //         manager.depositPerp{value: fee}(2, perpTokens[2], amountWETH, address(this));
-
-    //         processQueue();
-
-    //         (address router, uint256 activeAmountBTC,,) = manager.getPoolToken(2, address(BTC));
-    //         (, uint256 activeAmountUSDC,,) = manager.getPoolToken(2, address(USDC));
-    //         (, uint256 activeAmountWETH,,) = manager.getPoolToken(2, address(WETH));
-
-    //         uint256 userActiveAmountBTC = manager.getUserActiveAmount(2, address(BTC), address(this));
-    //         uint256 userActiveAmountUSDC = manager.getUserActiveAmount(2, address(USDC), address(this));
-    //         uint256 userActiveAmountWETH = manager.getUserActiveAmount(2, address(WETH), address(this));
-
-    //         assertEq(userActiveAmountBTC, amountBTC);
-    //         assertEq(userActiveAmountUSDC, amountUSDC);
-    //         assertEq(activeAmountWETH, amountWETH);
-
-    //         assertEq(userActiveAmountBTC, activeAmountBTC);
-    //         assertEq(userActiveAmountUSDC, activeAmountUSDC);
-    //         assertEq(userActiveAmountWETH, activeAmountWETH);
-
-    //         assertEq(sumPendingBalance(address(BTC), address(this)), 0);
-    //         assertEq(sumPendingBalance(address(USDC), address(this)), 0);
-    //         assertEq(sumPendingBalance(address(WETH), address(this)), 0);
-
-    //         // Advance time for deposit slow-mode tx.
-    //         processSlowModeTxs();
-
-    //         manager.depositPerp{value: fee}(2, perpTokens[0], amountBTC, address(this));
-    //         manager.depositPerp{value: fee}(2, perpTokens[1], amountUSDC, address(this));
-    //         manager.depositPerp{value: fee}(2, perpTokens[2], amountWETH, address(this));
-
-    //         processQueue();
-
-    //         (, activeAmountBTC,,) = manager.getPoolToken(2, address(BTC));
-    //         (, activeAmountUSDC,,) = manager.getPoolToken(2, address(USDC));
-    //         (, activeAmountWETH,,) = manager.getPoolToken(2, address(WETH));
-
-    //         userActiveAmountBTC = manager.getUserActiveAmount(2, address(BTC), address(this));
-    //         userActiveAmountUSDC = manager.getUserActiveAmount(2, address(USDC), address(this));
-    //         userActiveAmountWETH = manager.getUserActiveAmount(2, address(WETH), address(this));
-
-    //         assertEq(userActiveAmountBTC, amountBTC * 2);
-    //         assertEq(userActiveAmountUSDC, amountUSDC * 2);
-    //         assertEq(activeAmountWETH, amountWETH * 2);
-
-    //         assertEq(userActiveAmountBTC, activeAmountBTC);
-    //         assertEq(userActiveAmountUSDC, activeAmountUSDC);
-    //         assertEq(userActiveAmountWETH, activeAmountWETH);
-
-    //         assertEq(sumPendingBalance(address(BTC), address(this)), 0);
-    //         assertEq(sumPendingBalance(address(USDC), address(this)), 0);
-    //         assertEq(sumPendingBalance(address(WETH), address(this)), 0);
-
-    //         // Advance time for deposit slow-mode tx.
-    //         processSlowModeTxs();
-
-    //         manager.withdrawPerp{value: fee}(2, perpTokens[0], amountBTC);
-    //         manager.withdrawPerp{value: fee}(2, perpTokens[1], amountUSDC);
-    //         manager.withdrawPerp{value: fee}(2, perpTokens[2], amountWETH);
-
-    //         processQueue();
-
-    //         (, activeAmountBTC,,) = manager.getPoolToken(2, address(BTC));
-    //         (, activeAmountUSDC,,) = manager.getPoolToken(2, address(USDC));
-    //         (, activeAmountWETH,,) = manager.getPoolToken(2, address(WETH));
-
-    //         userActiveAmountBTC = manager.getUserActiveAmount(2, address(BTC), address(this));
-    //         userActiveAmountUSDC = manager.getUserActiveAmount(2, address(USDC), address(this));
-    //         userActiveAmountWETH = manager.getUserActiveAmount(2, address(WETH), address(this));
-
-    //         assertEq(userActiveAmountBTC, amountBTC);
-    //         assertEq(userActiveAmountUSDC, amountUSDC);
-    //         assertEq(activeAmountWETH, amountWETH);
-
-    //         assertEq(userActiveAmountBTC, activeAmountBTC);
-    //         assertEq(userActiveAmountUSDC, activeAmountUSDC);
-    //         assertEq(userActiveAmountWETH, activeAmountWETH);
-
-    //         assertEq(sumPendingBalance(address(BTC), address(this)), amountBTC - manager.getTransactionFee(address(BTC)));
-    //         assertEq(sumPendingBalance(address(USDC), address(this)), amountUSDC - manager.getTransactionFee(address(USDC)));
-    //         assertLe(sumPendingBalance(address(WETH), address(this)), amountWETH - manager.getTransactionFee(address(WETH)));
-
-    //         manager.withdrawPerp{value: fee}(2, perpTokens[0], amountBTC);
-    //         manager.withdrawPerp{value: fee}(2, perpTokens[1], amountUSDC);
-    //         manager.withdrawPerp{value: fee}(2, perpTokens[2], amountWETH);
-
-    //         processQueue();
-
-    //         (, activeAmountBTC,,) = manager.getPoolToken(2, address(BTC));
-    //         (, activeAmountUSDC,,) = manager.getPoolToken(2, address(USDC));
-    //         (, activeAmountWETH,,) = manager.getPoolToken(2, address(WETH));
-
-    //         userActiveAmountBTC = manager.getUserActiveAmount(2, address(BTC), address(this));
-    //         userActiveAmountUSDC = manager.getUserActiveAmount(2, address(USDC), address(this));
-    //         userActiveAmountWETH = manager.getUserActiveAmount(2, address(WETH), address(this));
-
-    //         assertEq(userActiveAmountBTC, 0);
-    //         assertEq(userActiveAmountUSDC, 0);
-    //         assertEq(activeAmountWETH, 0);
-
-    //         assertEq(userActiveAmountBTC, activeAmountBTC);
-    //         assertEq(userActiveAmountUSDC, activeAmountUSDC);
-    //         assertEq(userActiveAmountWETH, activeAmountWETH);
-
-    //         assertEq(
-    //             sumPendingBalance(address(BTC), address(this)), 2 * (amountBTC - manager.getTransactionFee(address(BTC)))
-    //         );
-    //         assertEq(
-    //             sumPendingBalance(address(USDC), address(this)), 2 * (amountUSDC - manager.getTransactionFee(address(USDC)))
-    //         );
-    //         assertLe(
-    //             sumPendingBalance(address(WETH), address(this)), 2 * (amountWETH - manager.getTransactionFee(address(WETH)))
-    //         );
-
-    //         // Advance time for withdraw slow-mode tx.
-    //         processSlowModeTxs();
-    //         deal(address(BTC), router, 2 * amountBTC);
-    //         deal(address(USDC), router, 2 * amountUSDC);
-    //         deal(address(WETH), router, 2 * amountWETH);
-
-    //         // Claim tokens for user and owner.
-    //         manager.claim(address(this), perpTokens[0], 2);
-    //         manager.claim(address(this), perpTokens[1], 2);
-    //         manager.claim(address(this), perpTokens[2], 2);
-
-    //         assertEq(sumPendingBalance(address(BTC), address(this)), 0);
-    //         assertEq(sumPendingBalance(address(USDC), address(this)), 0);
-    //         assertEq(sumPendingBalance(address(WETH), address(this)), 0);
-    //         assertEq(BTC.balanceOf(address(this)), 2 * (amountBTC - manager.getTransactionFee(address(BTC))));
-    //         assertEq(USDC.balanceOf(address(this)), 2 * (amountUSDC - manager.getTransactionFee(address(USDC))));
-    //         assertLe(WETH.balanceOf(address(this)), 2 * (amountWETH - manager.getTransactionFee(address(WETH))));
-    //         assertEq(BTC.balanceOf(owner), 2 * manager.getTransactionFee(address(BTC)));
-    //     }
-
-    //     /// @notice Unit test for a single deposit and withdraw flow in a perp pool for a different receiver.
-    //     function testOtherReceiver(uint72 amountBTC, uint80 amountUSDC, uint256 amountWETH) public {
-    //         // Amounts to deposit should be at least the withdraw fee (otherwise not enough to pay fee).
-    //         vm.assume(amountBTC >= manager.getTransactionFee(address(BTC)));
-    //         vm.assume(amountUSDC >= manager.getTransactionFee(address(USDC)));
-    //         vm.assume(amountWETH >= manager.getTransactionFee(address(WETH)));
-
-    //         deal(address(BTC), address(this), amountBTC);
-    //         deal(address(USDC), address(this), amountUSDC);
-    //         deal(address(WETH), address(this), amountWETH);
-
-    //         BTC.approve(address(manager), amountBTC);
-    //         USDC.approve(address(manager), amountUSDC);
-    //         WETH.approve(address(manager), amountWETH);
-
-    //         uint256[] memory amounts = new uint256[](3);
-    //         amounts[0] = amountBTC;
-    //         amounts[1] = amountUSDC;
-    //         amounts[2] = amountWETH;
-
-    //         manager.depositPerp{value: fee}(2, perpTokens[0], amountBTC, address(0x69));
-    //         manager.depositPerp{value: fee}(2, perpTokens[1], amountUSDC, address(0x69));
-    //         manager.depositPerp{value: fee}(2, perpTokens[2], amountWETH, address(0x69));
-
-    //         processQueue();
-
-    //         (address router, uint256 activeAmountBTC,,) = manager.getPoolToken(2, address(BTC));
-    //         (, uint256 activeAmountUSDC,,) = manager.getPoolToken(2, address(USDC));
-    //         (, uint256 activeAmountWETH,,) = manager.getPoolToken(2, address(WETH));
-
-    //         uint256 userActiveAmountCallerBTC = manager.getUserActiveAmount(2, address(BTC), address(this));
-    //         uint256 userActiveAmountCallerUSDC = manager.getUserActiveAmount(2, address(USDC), address(this));
-    //         uint256 userActiveAmountCallerWETH = manager.getUserActiveAmount(2, address(WETH), address(this));
-
-    //         uint256 userActiveAmountReceiverBTC = manager.getUserActiveAmount(2, address(BTC), address(0x69));
-    //         uint256 userActiveAmountReceiverUSDC = manager.getUserActiveAmount(2, address(USDC), address(0x69));
-    //         uint256 userActiveAmountReceiverWETH = manager.getUserActiveAmount(2, address(WETH), address(0x69));
-
-    //         assertEq(activeAmountBTC, amountBTC);
-    //         assertEq(activeAmountUSDC, amountUSDC);
-    //         assertEq(activeAmountWETH, amountWETH);
-
-    //         assertEq(userActiveAmountCallerBTC, 0);
-    //         assertEq(userActiveAmountCallerUSDC, 0);
-    //         assertEq(userActiveAmountCallerWETH, 0);
-
-    //         assertEq(userActiveAmountReceiverBTC, amountBTC);
-    //         assertEq(userActiveAmountReceiverUSDC, amountUSDC);
-    //         assertEq(userActiveAmountReceiverWETH, amountWETH);
-
-    //         assertEq(activeAmountBTC, userActiveAmountCallerBTC + userActiveAmountReceiverBTC);
-    //         assertEq(activeAmountUSDC, userActiveAmountCallerUSDC + userActiveAmountReceiverUSDC);
-    //         assertEq(activeAmountWETH, userActiveAmountCallerWETH + userActiveAmountReceiverWETH);
-
-    //         assertEq(sumPendingBalance(address(BTC), address(0x69)), 0);
-    //         assertEq(sumPendingBalance(address(USDC), address(0x69)), 0);
-    //         assertEq(sumPendingBalance(address(WETH), address(0x69)), 0);
-    //         assertEq(sumPendingBalance(address(BTC), address(this)), 0);
-    //         assertEq(sumPendingBalance(address(USDC), address(this)), 0);
-    //         assertEq(sumPendingBalance(address(WETH), address(this)), 0);
-
-    //         // Advance time for deposit slow-mode tx.
-    //         processSlowModeTxs();
-
-    //         vm.deal(address(0x69), fee * 3);
-
-    //         vm.startPrank(address(0x69));
-    //         manager.withdrawPerp{value: fee}(2, perpTokens[0], amounts[0]);
-    //         manager.withdrawPerp{value: fee}(2, perpTokens[1], amounts[1]);
-    //         manager.withdrawPerp{value: fee}(2, perpTokens[2], amounts[2]);
-    //         vm.stopPrank();
-
-    //         processQueue();
-
-    //         (, activeAmountBTC,,) = manager.getPoolToken(2, address(BTC));
-    //         (, activeAmountUSDC,,) = manager.getPoolToken(2, address(USDC));
-    //         (, activeAmountWETH,,) = manager.getPoolToken(2, address(WETH));
-
-    //         userActiveAmountCallerBTC = manager.getUserActiveAmount(2, address(BTC), address(this));
-    //         userActiveAmountCallerUSDC = manager.getUserActiveAmount(2, address(USDC), address(this));
-    //         userActiveAmountCallerWETH = manager.getUserActiveAmount(2, address(WETH), address(this));
-
-    //         userActiveAmountReceiverBTC = manager.getUserActiveAmount(2, address(BTC), address(0x69));
-    //         userActiveAmountReceiverUSDC = manager.getUserActiveAmount(2, address(USDC), address(0x69));
-    //         userActiveAmountReceiverWETH = manager.getUserActiveAmount(2, address(WETH), address(0x69));
-
-    //         assertEq(activeAmountBTC, 0);
-    //         assertEq(activeAmountUSDC, 0);
-    //         assertEq(activeAmountWETH, 0);
-
-    //         assertEq(userActiveAmountCallerBTC, 0);
-    //         assertEq(userActiveAmountCallerUSDC, 0);
-    //         assertEq(userActiveAmountCallerWETH, 0);
-
-    //         assertEq(userActiveAmountReceiverBTC, 0);
-    //         assertEq(userActiveAmountReceiverUSDC, 0);
-    //         assertEq(userActiveAmountReceiverWETH, 0);
-
-    //         assertEq(activeAmountBTC, userActiveAmountCallerBTC + userActiveAmountReceiverBTC);
-    //         assertEq(activeAmountUSDC, userActiveAmountCallerUSDC + userActiveAmountReceiverUSDC);
-    //         assertEq(activeAmountWETH, userActiveAmountCallerWETH + userActiveAmountReceiverWETH);
-
-    //         assertEq(uint256(manager.queueCount()), perpTokens.length * 2);
-
-    //         assertEq(sumPendingBalance(address(BTC), address(0x69)), amounts[0] - manager.getTransactionFee(address(BTC)));
-    //         assertEq(sumPendingBalance(address(USDC), address(0x69)), amounts[1] - manager.getTransactionFee(address(USDC)));
-    //         assertLe(sumPendingBalance(address(WETH), address(0x69)), amounts[2] - manager.getTransactionFee(address(WETH)));
-    //         assertEq(sumPendingBalance(address(BTC), address(this)), 0);
-    //         assertEq(sumPendingBalance(address(USDC), address(this)), 0);
-    //         assertEq(sumPendingBalance(address(WETH), address(this)), 0);
-
-    //         // Advance time for withdraw slow-mode tx.
-    //         processSlowModeTxs();
-    //         deal(address(BTC), router, amounts[0]);
-    //         deal(address(USDC), router, amounts[1]);
-    //         deal(address(WETH), router, amounts[2]);
-
-    //         // Claim tokens for user and owner.
-    //         manager.claim(address(0x69), perpTokens[0], 2);
-    //         manager.claim(address(0x69), perpTokens[1], 2);
-    //         manager.claim(address(0x69), perpTokens[2], 2);
-
-    //         assertEq(sumPendingBalance(address(BTC), address(0x69)), 0);
-    //         assertEq(sumPendingBalance(address(USDC), address(0x69)), 0);
-    //         assertEq(sumPendingBalance(address(WETH), address(0x69)), 0);
-    //         assertEq(sumPendingBalance(address(BTC), address(this)), 0);
-    //         assertEq(sumPendingBalance(address(USDC), address(this)), 0);
-    //         assertEq(sumPendingBalance(address(WETH), address(this)), 0);
-    //         assertEq(BTC.balanceOf(address(0x69)), amounts[0] - manager.getTransactionFee(address(BTC)));
-    //         assertEq(USDC.balanceOf(address(0x69)), amounts[1] - manager.getTransactionFee(address(USDC)));
-    //         assertLe(WETH.balanceOf(address(0x69)), amounts[2] - manager.getTransactionFee(address(WETH)));
-    //         assertEq(BTC.balanceOf(owner), manager.getTransactionFee(address(BTC)));
-    //     }
+    /*//////////////////////////////////////////////////////////////
+                        DEPOSIT/WITHDRAWAL TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Unit test for a single deposit and withdraw flow in a perp pool.
+    function testSingle(uint248 amount) public {
+        vm.assume(amount > 0);
+
+        deal(address(USDT), address(this), amount);
+
+        USDT.safeApprove(address(manager), amount);
+
+        manager.deposit(1, amount, address(this));
+
+        (address router,, uint256 activeAmount,) = manager.pools(1);
+        assertEq(activeAmount, 0);
+        assertEq(manager.getUserActiveAmount(1, address(this)), activeAmount);
+        assertEq(manager.getUserPendingAmount(1, address(this)), 0);
+        assertEq(uint256(manager.queueCount()), 1);
+        assertEq(uint256(manager.queueUpTo()), 0);
+
+        processQueue();
+
+        (,, activeAmount,) = manager.pools(1);
+        assertEq(activeAmount, amount);
+        assertEq(manager.getUserActiveAmount(1, address(this)), activeAmount);
+        assertEq(manager.getUserPendingAmount(1, address(this)), 0);
+        assertEq(uint256(manager.queueCount()), 1);
+        assertEq(uint256(manager.queueUpTo()), 1);
+
+        manager.withdraw(1, amount);
+
+        (,, activeAmount,) = manager.pools(1);
+        assertEq(activeAmount, amount);
+        assertEq(manager.getUserActiveAmount(1, address(this)), activeAmount);
+        assertEq(manager.getUserPendingAmount(1, address(this)), 0);
+        assertEq(uint256(manager.queueCount()), 2);
+        assertEq(uint256(manager.queueUpTo()), 1);
+
+        // Process queue.
+        processQueue();
+
+        (,, activeAmount,) = manager.pools(1);
+        assertEq(activeAmount, 0);
+        assertEq(manager.getUserActiveAmount(1, address(this)), activeAmount);
+        assertEq(manager.getUserPendingAmount(1, address(this)), amount);
+        assertEq(uint256(manager.queueCount()), 2);
+        assertEq(uint256(manager.queueUpTo()), 2);
+
+        // Simulate RabbitX withdrawal of tokens.
+        vm.prank(address(rabbit));
+        USDT.safeTransfer(address(router), amount);
+
+        // Claim tokens.
+        manager.claim(address(this), 1);
+
+        (,, activeAmount,) = manager.pools(1);
+        assertEq(activeAmount, 0);
+        assertEq(manager.getUserActiveAmount(1, address(this)), activeAmount);
+        assertEq(manager.getUserPendingAmount(1, address(this)), 0);
+        assertEq(uint256(manager.queueCount()), 2);
+        assertEq(uint256(manager.queueUpTo()), 2);
+        assertEq(USDT.balanceOf(address(this)), amount);
+        // TODO: Add fees.
+        // assertEq(USDT.balanceOf(owner), manager.getTransactionFee(address(BTC)));
+    }
+
+    /// @notice Unit test for a double deposit and withdraw flow in a perp pool.
+    function testDouble(uint256 amount) public {
+        vm.assume(amount > 0 && amount < type(uint120).max);
+
+        deal(address(USDT), address(this), amount * 2, true);
+
+        USDT.safeApprove(address(manager), amount * 2);
+
+        manager.deposit(1, amount, address(this));
+
+        (address router,, uint256 activeAmount,) = manager.pools(1);
+        assertEq(activeAmount, 0);
+        assertEq(manager.getUserActiveAmount(1, address(this)), activeAmount);
+        assertEq(manager.getUserPendingAmount(1, address(this)), 0);
+        assertEq(uint256(manager.queueCount()), 1);
+        assertEq(uint256(manager.queueUpTo()), 0);
+
+        processQueue();
+
+        (,, activeAmount,) = manager.pools(1);
+        assertEq(activeAmount, amount);
+        assertEq(manager.getUserActiveAmount(1, address(this)), activeAmount);
+        assertEq(manager.getUserPendingAmount(1, address(this)), 0);
+        assertEq(uint256(manager.queueCount()), 1);
+        assertEq(uint256(manager.queueUpTo()), 1);
+
+        manager.deposit(1, amount, address(this));
+
+        (,, activeAmount,) = manager.pools(1);
+        assertEq(activeAmount, amount);
+        assertEq(manager.getUserActiveAmount(1, address(this)), activeAmount);
+        assertEq(manager.getUserPendingAmount(1, address(this)), 0);
+        assertEq(uint256(manager.queueCount()), 2);
+        assertEq(uint256(manager.queueUpTo()), 1);
+
+        processQueue();
+
+        (,, activeAmount,) = manager.pools(1);
+        assertEq(activeAmount, amount * 2);
+        assertEq(manager.getUserActiveAmount(1, address(this)), activeAmount);
+        assertEq(manager.getUserPendingAmount(1, address(this)), 0);
+        assertEq(uint256(manager.queueCount()), 2);
+        assertEq(uint256(manager.queueUpTo()), 2);
+
+        manager.withdraw(1, amount);
+
+        (,, activeAmount,) = manager.pools(1);
+        assertEq(activeAmount, amount * 2);
+        assertEq(manager.getUserActiveAmount(1, address(this)), activeAmount);
+        assertEq(manager.getUserPendingAmount(1, address(this)), 0);
+        assertEq(uint256(manager.queueCount()), 3);
+        assertEq(uint256(manager.queueUpTo()), 2);
+
+        // Process queue.
+        processQueue();
+
+        (,, activeAmount,) = manager.pools(1);
+        assertEq(activeAmount, amount);
+        assertEq(manager.getUserActiveAmount(1, address(this)), activeAmount);
+        assertEq(manager.getUserPendingAmount(1, address(this)), amount);
+        assertEq(uint256(manager.queueCount()), 3);
+        assertEq(uint256(manager.queueUpTo()), 3);
+
+        manager.withdraw(1, amount);
+
+        (,, activeAmount,) = manager.pools(1);
+        assertEq(activeAmount, amount);
+        assertEq(manager.getUserActiveAmount(1, address(this)), activeAmount);
+        assertEq(manager.getUserPendingAmount(1, address(this)), amount);
+        assertEq(uint256(manager.queueCount()), 4);
+        assertEq(uint256(manager.queueUpTo()), 3);
+
+        // Process queue.
+        processQueue();
+
+        (,, activeAmount,) = manager.pools(1);
+        assertEq(activeAmount, 0);
+        assertEq(manager.getUserActiveAmount(1, address(this)), activeAmount);
+        assertEq(manager.getUserPendingAmount(1, address(this)), amount * 2);
+        assertEq(uint256(manager.queueCount()), 4);
+        assertEq(uint256(manager.queueUpTo()), 4);
+
+        // Simulate RabbitX withdrawal of tokens.
+        vm.prank(address(rabbit));
+        USDT.safeTransfer(address(router), amount * 2);
+
+        // Claim tokens.
+        manager.claim(address(this), 1);
+
+        (,, activeAmount,) = manager.pools(1);
+        assertEq(activeAmount, 0);
+        assertEq(manager.getUserActiveAmount(1, address(this)), activeAmount);
+        assertEq(manager.getUserPendingAmount(1, address(this)), 0);
+        assertEq(uint256(manager.queueCount()), 4);
+        assertEq(uint256(manager.queueUpTo()), 4);
+        assertEq(USDT.balanceOf(address(this)), amount * 2);
+        // TODO: Add fees.
+        // assertEq(USDT.balanceOf(owner), manager.getTransactionFee(address(BTC)));
+    }
+
+    /// @notice Unit test for a single deposit and withdraw flow in a perp pool for a different receiver.
+    function testOtherReceiver(uint248 amount) public {
+        vm.assume(amount > 0);
+
+        deal(address(USDT), address(this), amount);
+
+        USDT.safeApprove(address(manager), amount);
+
+        manager.deposit(1, amount, address(0xbeef));
+
+        (address router,, uint256 activeAmount,) = manager.pools(1);
+        assertEq(activeAmount, 0);
+        assertEq(manager.getUserActiveAmount(1, address(this)), 0);
+        assertEq(manager.getUserActiveAmount(1, address(0xbeef)), activeAmount);
+        assertEq(manager.getUserPendingAmount(1, address(this)), 0);
+        assertEq(manager.getUserPendingAmount(1, address(0xbeef)), 0);
+        assertEq(uint256(manager.queueCount()), 1);
+        assertEq(uint256(manager.queueUpTo()), 0);
+
+        processQueue();
+
+        (,, activeAmount,) = manager.pools(1);
+        assertEq(activeAmount, amount);
+        assertEq(manager.getUserActiveAmount(1, address(this)), 0);
+        assertEq(manager.getUserActiveAmount(1, address(0xbeef)), activeAmount);
+        assertEq(manager.getUserPendingAmount(1, address(this)), 0);
+        assertEq(manager.getUserPendingAmount(1, address(0xbeef)), 0);
+        assertEq(uint256(manager.queueCount()), 1);
+        assertEq(uint256(manager.queueUpTo()), 1);
+
+        vm.prank(address(0xbeef));
+        manager.withdraw(1, amount);
+
+        (,, activeAmount,) = manager.pools(1);
+        assertEq(activeAmount, amount);
+        assertEq(manager.getUserActiveAmount(1, address(this)), 0);
+        assertEq(manager.getUserActiveAmount(1, address(0xbeef)), activeAmount);
+        assertEq(manager.getUserPendingAmount(1, address(this)), 0);
+        assertEq(manager.getUserPendingAmount(1, address(0xbeef)), 0);
+        assertEq(uint256(manager.queueCount()), 2);
+        assertEq(uint256(manager.queueUpTo()), 1);
+
+        // Process queue.
+        processQueue();
+
+        (,, activeAmount,) = manager.pools(1);
+        assertEq(activeAmount, 0);
+        assertEq(manager.getUserActiveAmount(1, address(this)), 0);
+        assertEq(manager.getUserActiveAmount(1, address(0xbeef)), activeAmount);
+        assertEq(manager.getUserPendingAmount(1, address(this)), 0);
+        assertEq(manager.getUserPendingAmount(1, address(0xbeef)), amount);
+        assertEq(uint256(manager.queueCount()), 2);
+        assertEq(uint256(manager.queueUpTo()), 2);
+
+        // Simulate RabbitX withdrawal of tokens.
+        vm.prank(address(rabbit));
+        USDT.safeTransfer(address(router), amount);
+
+        // Claim tokens.
+        manager.claim(address(0xbeef), 1);
+
+        (,, activeAmount,) = manager.pools(1);
+        assertEq(activeAmount, 0);
+        assertEq(manager.getUserActiveAmount(1, address(this)), 0);
+        assertEq(manager.getUserActiveAmount(1, address(0xbeef)), activeAmount);
+        assertEq(manager.getUserPendingAmount(1, address(this)), 0);
+        assertEq(manager.getUserPendingAmount(1, address(0xbeef)), 0);
+        assertEq(uint256(manager.queueCount()), 2);
+        assertEq(uint256(manager.queueUpTo()), 2);
+        assertEq(USDT.balanceOf(address(this)), 0);
+        assertEq(USDT.balanceOf(address(0xbeef)), amount);
+        // TODO: Add fees.
+        // assertEq(USDT.balanceOf(owner), manager.getTransactionFee(address(BTC)));
+    }
 
     /*//////////////////////////////////////////////////////////////
                      DEPOSIT/WITHDRAWAL SANITY CHECK TESTS
@@ -512,7 +372,7 @@ contract TestRabbitManager is Test {
 
         manager.deposit(1, amount, address(this));
 
-        USDT.safeTransfer(address(0x69), amount);
+        USDT.safeTransfer(address(0xbeef), amount);
 
         uint256 userActiveAmount = manager.getUserActiveAmount(1, address(this));
 
@@ -530,376 +390,226 @@ contract TestRabbitManager is Test {
         assertEq(manager.queueUpTo(), 1);
     }
 
-    //     /// @notice Unit test for a failed deposit due to zero approval.
-    //     function testDepositWithNoApproval(uint240 amountBTC) public {
-    //         vm.assume(amountBTC > 0);
-
-    //         uint256 amountUSDC = manager.getBalancedAmount(address(BTC), address(USDC), amountBTC);
-
-    //         deal(address(BTC), address(this), amountBTC);
-    //         deal(address(USDC), address(this), amountUSDC);
-
-    //         manager.depositSpot{value: fee}(
-    //             1, spotTokens[0], spotTokens[1], amountBTC, amountUSDC, amountUSDC, address(this)
-    //         );
-
-    //         uint256 userActiveAmountBTC = manager.getUserActiveAmount(1, address(BTC), address(this));
-    //         uint256 userActiveAmountUSDC = manager.getUserActiveAmount(1, address(USDC), address(this));
-
-    //         assertEq(userActiveAmountBTC, 0);
-    //         assertEq(userActiveAmountUSDC, 0);
-
-    //         // Silently reverts and spot is skipped.
-    //         vm.prank(externalAccount);
-    //         manager.unqueue(
-    //             1,
-    //             abi.encode(
-    //                 IRabbitManager.DepositSpotResponse({
-    //                     amount1: amountUSDC,
-    //                     token0Shares: amountBTC,
-    //                     token1Shares: amountUSDC
-    //                 })
-    //             )
-    //         );
-
-    //         userActiveAmountBTC = manager.getUserActiveAmount(1, address(BTC), address(this));
-    //         userActiveAmountUSDC = manager.getUserActiveAmount(1, address(USDC), address(this));
-
-    //         assertEq(userActiveAmountBTC, 0);
-    //         assertEq(userActiveAmountUSDC, 0);
-
-    //         // Check that the spot was indeed skipped.
-    //         assertEq(manager.queueUpTo(), 1);
-    //     }
+    /// @notice Unit test for a failed deposit due to zero approval.
+    function testDepositWithNoApproval(uint256 amount) public {
+        vm.assume(amount > 0);
 
-    //     /// @notice Unit test for all checks in deposit and withdraw functions for a perp pool.
-    //     function testChecks() public {
-    //         // Deposit checks
-    //         vm.expectRevert(abi.encodeWithSelector(RabbitManager.InvalidPool.selector, 69));
-    //         manager.depositPerp{value: fee}(69, address(0), 0, address(this));
+        deal(address(USDT), address(this), amount);
 
-    //         vm.expectRevert(abi.encodeWithSelector(RabbitManager.ZeroAddress.selector));
-    //         manager.depositPerp{value: fee}(2, address(0), 0, address(0));
+        manager.deposit(1, amount, address(this));
 
-    //         vm.expectRevert(abi.encodeWithSelector(RabbitManager.FeeTooLow.selector, fee - 1, fee));
-    //         manager.depositPerp{value: fee - 1}(2, address(0x69), 100000, address(0x69));
-
-    //         // Withdraw checks
-    //         vm.expectRevert(abi.encodeWithSelector(RabbitManager.InvalidPool.selector, 69));
-    //         manager.withdrawPerp{value: fee}(69, address(0), 0);
-
-    //         vm.expectRevert(
-    //             abi.encodeWithSelector(RabbitManager.AmountTooLow.selector, 0, manager.getTransactionFee(perpTokens[0]))
-    //         );
-    //         manager.withdrawPerp{value: fee}(2, perpTokens[0], 0);
+        uint256 userActiveAmount = manager.getUserActiveAmount(1, address(this));
 
-    //         vm.expectRevert(abi.encodeWithSelector(RabbitManager.FeeTooLow.selector, fee - 1, fee));
-    //         manager.withdrawPerp{value: fee - 1}(2, perpTokens[0], 10000);
-    //     }
-
-    //     /// @notice Unit test for all checks in the claim function
-    //     function testClaimChecks() public {
-    //         vm.expectRevert(abi.encodeWithSelector(RabbitManager.InvalidPool.selector, 69));
-    //         manager.claim(address(this), address(0), 69);
+        assertEq(userActiveAmount, 0);
 
-    //         vm.expectRevert(abi.encodeWithSelector(RabbitManager.ZeroAddress.selector));
-    //         manager.claim(address(0), address(0), 1);
-    //     }
+        // Silently reverts and spot is skipped.
+        vm.prank(externalAccount);
+        manager.unqueue(1, abi.encode(IRabbitManager.DepositResponse({shares: amount})));
 
-    //     /// @notice Unit test for a failed deposit due to exceeding the hardcap.
-    //     function testHardcapReached() public {
-    //         uint256 amountBTC = 10 * 10 ** 8; // 10 BTC
-    //         uint256 amountUSDC = manager.getBalancedAmount(address(BTC), address(USDC), amountBTC);
+        userActiveAmount = manager.getUserActiveAmount(1, address(this));
 
-    //         deal(address(BTC), address(this), amountBTC * 2);
-    //         deal(address(USDC), address(this), amountUSDC * 2);
-
-    //         BTC.approve(address(manager), amountBTC * 2);
-    //         USDC.approve(address(manager), amountUSDC * 2);
-
-    //         uint256[] memory hardcaps = new uint256[](2);
-    //         hardcaps[0] = amountBTC;
-    //         hardcaps[1] = amountUSDC;
-
-    //         vm.prank(owner);
-    //         manager.updatePoolHardcaps(1, spotTokens, hardcaps);
-
-    //         // Deposit should succeed because amounts and hardcaps are the same.
-    //         manager.depositSpot{value: fee}(
-    //             1, spotTokens[0], spotTokens[1], amountBTC, amountUSDC, amountUSDC, address(this)
-    //         );
-    //         processQueue();
-
-    //         uint256 userActiveAmountBTC = manager.getUserActiveAmount(1, address(BTC), address(this));
-    //         uint256 userActiveAmountUSDC = manager.getUserActiveAmount(1, address(USDC), address(this));
+        assertEq(userActiveAmount, 0);
 
-    //         assertEq(userActiveAmountBTC, amountBTC);
-    //         assertEq(userActiveAmountUSDC, amountUSDC);
-
-    //         // Deposit request passes but fails silently when processing, so no change is applied.
-    //         manager.depositSpot{value: fee}(
-    //             1, spotTokens[0], spotTokens[1], amountBTC, amountUSDC, amountUSDC, address(this)
-    //         );
-    //         processQueue();
+        // Check that the spot was indeed skipped.
+        assertEq(manager.queueUpTo(), 1);
+    }
 
-    //         userActiveAmountBTC = manager.getUserActiveAmount(1, address(BTC), address(this));
-    //         userActiveAmountUSDC = manager.getUserActiveAmount(1, address(USDC), address(this));
+    /// @notice Unit test for all checks in deposit and withdraw functions for a perp pool.
+    function testChecks() public {
+        // Deposit checks
+        vm.expectRevert(abi.encodeWithSelector(RabbitManager.InvalidPool.selector, 69));
+        manager.deposit(69, 1, address(this));
 
-    //         assertEq(userActiveAmountBTC, amountBTC);
-    //         assertEq(userActiveAmountUSDC, amountUSDC);
-
-    //         assertEq(manager.queueUpTo(), 2);
-    //     }
+        vm.expectRevert(abi.encodeWithSelector(RabbitManager.ZeroAddress.selector));
+        manager.deposit(1, 1, address(0));
 
-    //     /// @notice Unit test for safety checks on unqueue function.
-    //     function testUnqueue() public {
-    //         uint256 amountBTC = 10 * 10 ** 8; // 10 BTC
-    //         uint256 amountUSDC = 100 * 10 ** 6; // 100 USDC
-
-    //         deal(address(BTC), address(this), amountBTC);
-    //         deal(address(USDC), address(this), amountUSDC);
-
-    //         BTC.approve(address(manager), amountBTC);
-    //         USDC.approve(address(manager), amountUSDC);
-
-    //         // Get the pool router.
-    //         (address router,,,) = manager.getPoolToken(2, address(BTC));
-
-    //         // Deposit 10 BTC.
-    //         manager.depositPerp{value: fee}(2, address(BTC), amountBTC, address(this));
-
-    //         // Withdraw 10 BTC.
-    //         manager.withdrawPerp{value: fee}(2, address(BTC), amountBTC);
+        // Withdraw checks
+        vm.expectRevert(abi.encodeWithSelector(RabbitManager.InvalidPool.selector, 69));
+        manager.withdraw(69, 1);
+    }
 
-    //         vm.expectRevert(
-    //             abi.encodeWithSelector(RabbitManager.NotExternalAccount.selector, router, externalAccount, address(this))
-    //         );
-    //         manager.unqueue(1, bytes(""));
-
-    //         vm.expectRevert(abi.encodeWithSelector(RabbitManager.InvalidSpot.selector, 69, 0));
-    //         vm.prank(externalAccount);
-    //         manager.unqueue(69, abi.encode(IRabbitManager.WithdrawPerpResponse({amountToReceive: amountBTC})));
-
-    //         vm.prank(externalAccount);
-    //         manager.unqueue(1, abi.encode(IRabbitManager.WithdrawPerpResponse({amountToReceive: amountBTC})));
-    //     }
+    /// @notice Unit test for all checks in the claim function
+    function testClaimChecks() public {
+        vm.expectRevert(abi.encodeWithSelector(RabbitManager.InvalidPool.selector, 69));
+        manager.claim(address(0), 69);
 
-    //     /*//////////////////////////////////////////////////////////////
-    //                             POOL MANAGE TESTS
-    //     //////////////////////////////////////////////////////////////*/
+        vm.expectRevert(abi.encodeWithSelector(RabbitManager.ZeroAddress.selector));
+        manager.claim(address(0), 1);
+    }
 
-    //     /// @notice Unit test for adding and updating a pool.
-    //     function testAddAndUpdatePool() public {
-    //         vm.startPrank(owner);
+    /// @notice Unit test for a failed deposit due to exceeding the hardcap.
+    function testHardcapReached() public {
+        uint256 amount = 100 * 10 ** USDT.decimals();
 
-    //         // Create BTC spot pool with BTC and USDC as tokens.
-    //         address[] memory tokens = new address[](2);
-    //         tokens[0] = address(BTC);
-    //         tokens[1] = address(USDC);
+        deal(address(USDT), address(this), amount * 2);
 
-    //         uint256[] memory hardcaps = new uint256[](2);
-    //         hardcaps[0] = type(uint256).max;
-    //         hardcaps[1] = type(uint256).max;
+        USDT.safeApprove(address(manager), amount * 2);
 
-    //         manager.addPool(999, tokens, hardcaps, IRabbitManager.PoolType.Spot, externalAccount);
+        vm.prank(owner);
+        manager.updatePoolHardcap(1, amount);
 
-    //         // Get the pool data.
-    //         (address routerBTC, uint256 activeAmountBTC, uint256 hardcapBTC, bool activeBTC) =
-    //             manager.getPoolToken(999, address(BTC));
-    //         (address routerUSDC, uint256 activeAmountUSDC, uint256 hardcapUSDC, bool activeUSDC) =
-    //             manager.getPoolToken(999, address(USDC));
+        // Deposit should succeed because amounts and hardcaps are the same.
+        manager.deposit(1, amount, address(this));
 
-    //         assertEq(routerBTC, routerUSDC);
-    //         assertEq(activeAmountBTC, 0);
-    //         assertEq(activeAmountBTC, activeAmountUSDC);
-    //         assertEq(hardcapBTC, hardcaps[0]);
-    //         assertEq(hardcapUSDC, hardcaps[1]);
-    //         assertTrue(activeBTC);
-    //         assertTrue(activeUSDC);
+        processQueue();
 
-    //         hardcaps[0] = 0;
-    //         hardcaps[1] = 0;
+        assertEq(manager.getUserActiveAmount(1, address(this)), amount);
 
-    //         manager.updatePoolHardcaps(999, tokens, hardcaps);
+        // Deposit request passes but fails silently when processing, so no change is applied.
+        manager.deposit(1, amount, address(this));
 
-    //         // Get the pool data.
-    //         (,, hardcapBTC, activeBTC) = manager.getPoolToken(999, address(BTC));
-    //         (,, hardcapUSDC, activeUSDC) = manager.getPoolToken(999, address(USDC));
+        processQueue();
 
-    //         assertEq(hardcapBTC, hardcaps[0]);
-    //         assertEq(hardcapUSDC, hardcaps[1]);
-    //         assertTrue(activeBTC);
-    //         assertTrue(activeUSDC);
-    //     }
+        assertEq(manager.getUserActiveAmount(1, address(this)), amount);
 
-    //     /*//////////////////////////////////////////////////////////////
-    //                       POOL MANAGE SANITY CHECK TESTS
-    //     //////////////////////////////////////////////////////////////*/
+        assertEq(manager.queueUpTo(), 2);
+    }
 
-    //     /// @notice Unit test for unauthorized add and update a pool.
-    //     function testUnauthorizedAddAndUpdate() public {
-    //         address[] memory tokens = new address[](0);
-    //         uint256[] memory hardcaps = new uint256[](0);
+    /// @notice Unit test for safety checks on unqueue function.
+    function testUnqueue() public {
+        uint256 amount = 100 * 10 ** USDT.decimals();
 
-    //         vm.expectRevert("Ownable: caller is not the owner");
-    //         manager.updatePoolHardcaps(1, tokens, hardcaps);
+        deal(address(USDT), address(this), amount);
 
-    //         vm.expectRevert("Ownable: caller is not the owner");
-    //         manager.addPoolTokens(1, tokens, hardcaps);
-    //     }
+        USDT.safeApprove(address(manager), amount);
 
-    //     /// @notice Unit test for checking pool empty state.
-    //     function testIsPoolAdded() public {
-    //         // Get the pool data.
-    //         (address routerBTC, uint256 activeAmountBTC, uint256 hardcapBTC, bool activeBTC) =
-    //             manager.getPoolToken(999, address(BTC));
+        // Get the pool router.
+        (address router,,,) = manager.pools(1);
 
-    //         assertEq(routerBTC, address(0));
-    //         assertEq(activeAmountBTC, 0);
-    //         assertEq(hardcapBTC, 0);
-    //         assertFalse(activeBTC);
-    //     }
+        // Deposit queued first.
+        manager.deposit(1, amount, address(this));
 
-    //     /// @notice Unit test for checking pool empty state.
-    //     function testPoolAdd() public {
-    //         vm.startPrank(owner);
+        // Withdraw queued second.
+        manager.withdraw(1, amount);
 
-    //         uint256 balance = paymentToken.balanceOf(owner);
+        vm.expectRevert(
+            abi.encodeWithSelector(RabbitManager.NotExternalAccount.selector, router, externalAccount, address(this))
+        );
+        manager.unqueue(1, bytes(""));
 
-    //         // Remove tokens from owner to simulate not having funds to pay for the LinkedSigner fee.
-    //         paymentToken.transfer(address(0x69), balance);
+        vm.expectRevert(abi.encodeWithSelector(RabbitManager.InvalidSpot.selector, 69, 0));
+        vm.prank(externalAccount);
+        manager.unqueue(69, abi.encode(IRabbitManager.DepositResponse({shares: amount})));
 
-    //         address[] memory tokens = new address[](2);
-    //         tokens[0] = address(BTC);
-    //         tokens[1] = address(USDC);
-
-    //         uint256[] memory hardcaps = new uint256[](2);
-    //         hardcaps[0] = type(uint256).max;
-    //         hardcaps[1] = type(uint256).max;
-
-    //         // Expect revert when trying to create a pool as owner doesn't have funds to cover LinkedSigner fee.
-    //         vm.expectRevert("ERC20: transfer amount exceeds balance");
-    //         manager.addPool(999, tokens, hardcaps, IRabbitManager.PoolType.Spot, externalAccount);
-
-    //         vm.stopPrank();
-
-    //         // Transfer tokens back to owner.
-    //         vm.prank(address(0x69));
-    //         paymentToken.transfer(address(owner), balance);
-
-    //         vm.startPrank(owner);
-
-    //         // Remove allowance.
-    //         paymentToken.approve(address(manager), 0);
-
-    //         // Expect revert when trying to create a pool as owner didn't give allowance for LinkedSigner fee.
-    //         vm.expectRevert("ERC20: transfer amount exceeds allowance");
-    //         manager.addPool(999, tokens, hardcaps, IRabbitManager.PoolType.Spot, externalAccount);
-
-    //         // Approve the manager to move USDC for fee payments.
-    //         paymentToken.approve(address(manager), type(uint256).max);
-
-    //         manager.addPool(999, tokens, hardcaps, IRabbitManager.PoolType.Spot, externalAccount);
-    //     }
-
-    //     /// @notice Unit test for checks when adding pools.
-    //     function testPoolAddChecks() public {
-    //         vm.startPrank(owner);
-
-    //         address[] memory tokens = new address[](2);
-    //         tokens[0] = address(WETH);
-    //         tokens[1] = address(USDC);
-
-    //         uint256[] memory hardcaps = new uint256[](2);
-    //         hardcaps[0] = type(uint256).max;
-    //         hardcaps[1] = type(uint256).max;
-
-    //         vm.expectRevert(abi.encodeWithSelector(RabbitManager.InvalidPool.selector, 1));
-    //         manager.addPool(1, tokens, hardcaps, IRabbitManager.PoolType.Spot, externalAccount);
-
-    //         tokens[0] = address(WETH);
-    //         tokens[1] = address(WETH);
-
-    //         vm.expectRevert(abi.encodeWithSelector(RabbitManager.AlreadySupported.selector, address(WETH), 999));
-    //         manager.addPool(999, tokens, hardcaps, IRabbitManager.PoolType.Spot, externalAccount);
-    //     }
-
-    //     /// @notice Unit test for failing to update hardcaps due to mismatched lengths of arrays.
-    //     function testInvalidHardcaps() public {
-    //         vm.startPrank(owner);
-
-    //         address[] memory tokens = new address[](0);
-
-    //         uint256[] memory hardcaps = new uint256[](1);
-    //         hardcaps[0] = type(uint256).max;
-
-    //         vm.expectRevert(abi.encodeWithSelector(RabbitManager.MismatchInputs.selector, hardcaps, tokens));
-    //         manager.updatePoolHardcaps(1, tokens, hardcaps);
-    //     }
-
-    //     /*//////////////////////////////////////////////////////////////
-    //                              PAUSED TESTS
-    //     //////////////////////////////////////////////////////////////*/
-
-    //     /// @notice Unit test for paused deposits.
-    //     function testDepositsPaused() public {
-    //         vm.prank(owner);
-    //         manager.pause(true, false, false);
-
-    //         vm.expectRevert(RabbitManager.DepositsPaused.selector);
-    //         manager.depositSpot{value: fee}(1, address(0), address(0), 0, 0, 0, address(this));
-    //     }
-
-    //     /// @notice Unit test for paused withdrawals.
-    //     function testWithdrawalsPaused() public {
-    //         vm.prank(owner);
-    //         manager.pause(false, true, false);
-
-    //         vm.expectRevert(RabbitManager.WithdrawalsPaused.selector);
-    //         manager.withdrawSpot{value: fee}(1, address(0), address(0), 0);
-    //     }
-
-    //     /// @notice Unit test for paused claims.
-    //     function testClaimsPaused() public {
-    //         vm.prank(owner);
-    //         manager.pause(false, false, true);
-
-    //         vm.expectRevert(RabbitManager.ClaimsPaused.selector);
-    //         manager.claim(address(this), address(0), 1);
-    //     }
-
-    //     /*//////////////////////////////////////////////////////////////
-    //                               PROXY TESTS
-    //     //////////////////////////////////////////////////////////////*/
-
-    //     /// @notice Unit test for initializing the proxy.
-    //     function testInitialize() public {
-    //         // Deploy and initialize the proxy contract.
-    //         new ERC1967Proxy(
-    //             address(RabbitManagerImplementation),
-    //             abi.encodeWithSignature("initialize(address,uint256)", address(endpoint), 1000000)
-    //         );
-    //     }
-
-    //     /// @notice Unit test for failing to initialize the proxy twice.
-    //     function testFailDoubleInitiliaze() public {
-    //         manager.initialize(address(0), 0);
-    //     }
-
-    //     /// @notice Unit test for upgrading the proxy and running a spot single unit test.
-    //     function testUpgradeProxy() public {
-    //         // Deploy another implementation and upgrade proxy to it.
-    //         vm.startPrank(owner);
-    //         manager.upgradeTo(address(new RabbitManager()));
-    //         vm.stopPrank();
-
-    //         testSpotSingle(100 * 10 ** 8);
-    //     }
-
-    //     /// @notice Unit test for failing to upgrade the proxy.
-    //     function testFailUnauthorizedUpgrade() public {
-    //         manager.upgradeTo(address(0));
-    //     }
+        vm.prank(externalAccount);
+        manager.unqueue(1, abi.encode(IRabbitManager.DepositResponse({shares: amount})));
+
+        assertEq(manager.getUserActiveAmount(1, address(this)), amount);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            POOL MANAGE TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Unit test for adding and updating a pool.
+    function testAddAndUpdatePool() public {
+        vm.startPrank(owner);
+
+        manager.addPool(999, type(uint256).max, externalAccount);
+
+        // Get the pool data.
+        (address router, IRabbitManager.PoolType poolType, uint256 activeAmount, uint256 hardcap) = manager.pools(999);
+
+        assertTrue(router != address(0));
+        assertEq(uint8(poolType), uint8(IRabbitManager.PoolType.Perp));
+        assertEq(activeAmount, 0);
+        assertEq(hardcap, type(uint256).max);
+
+        manager.updatePoolHardcap(999, 0);
+
+        (router, poolType, activeAmount, hardcap) = manager.pools(999);
+
+        assertTrue(router != address(0));
+        assertEq(uint8(poolType), uint8(IRabbitManager.PoolType.Perp));
+        assertEq(activeAmount, 0);
+        assertEq(hardcap, 0);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        POOL MANAGE SANITY CHECK TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Unit test for unauthorized add and update a pool.
+    function testUnauthorizedAddAndUpdate() public {
+        vm.expectRevert("Ownable: caller is not the owner");
+        manager.updatePoolHardcap(1, 0);
+
+        vm.expectRevert("Ownable: caller is not the owner");
+        manager.addPool(999, type(uint256).max, externalAccount);
+    }
+
+    /// @notice Unit test for trying to add a pool that already exists with the ID.
+    function testDuplicatedPool() public {
+        vm.startPrank(owner);
+
+        vm.expectRevert(abi.encodeWithSelector(RabbitManager.InvalidPool.selector, 1));
+        manager.addPool(1, 0, externalAccount);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                                PAUSED TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Unit test for paused deposits.
+    function testDepositsPaused() public {
+        vm.prank(owner);
+        manager.pause(true, false, false);
+
+        vm.expectRevert(RabbitManager.DepositsPaused.selector);
+        manager.deposit(1, 1, address(this));
+    }
+
+    /// @notice Unit test for paused withdrawals.
+    function testWithdrawalsPaused() public {
+        vm.prank(owner);
+        manager.pause(false, true, false);
+
+        vm.expectRevert(RabbitManager.WithdrawalsPaused.selector);
+        manager.withdraw(1, 1);
+    }
+
+    /// @notice Unit test for paused claims.
+    function testClaimsPaused() public {
+        vm.prank(owner);
+        manager.pause(false, false, true);
+
+        vm.expectRevert(RabbitManager.ClaimsPaused.selector);
+        manager.claim(address(this), 1);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                                PROXY TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Unit test for initializing the proxy.
+    function testInitialize() public {
+        // Deploy and initialize the proxy contract.
+        new ERC1967Proxy(
+            address(rabbitManagerImplementation),
+            abi.encodeWithSignature("initialize(address,uint256)", address(rabbit), 1000000)
+        );
+    }
+
+    /// @notice Unit test for failing to initialize the proxy twice.
+    function testFailDoubleInitiliaze() public {
+        manager.initialize(address(0), 0);
+    }
+
+    // TODO: Uncomment
+    // /// @notice Unit test for upgrading the proxy and running a spot single unit test.
+    // function testUpgradeProxy() public {
+    //     // Deploy another implementation and upgrade proxy to it.
+    //     vm.startPrank(owner);
+    //     manager.upgradeTo(address(new RabbitManager()));
+    //     vm.stopPrank();
+
+    //     testSingle(100 * 10 ** USDT.decimals());
+    // }
+
+    /// @notice Unit test for failing to upgrade the proxy.
+    function testFailUnauthorizedUpgrade() public {
+        manager.upgradeTo(address(0));
+    }
 
     //     /*//////////////////////////////////////////////////////////////
     //                               OTHER TESTS
