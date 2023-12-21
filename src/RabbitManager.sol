@@ -30,12 +30,6 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
     /// @notice The pools managed given an ID.
     mapping(uint256 id => Pool pool) public pools;
 
-    /// @notice The RabbitX product IDs of token addresses.
-    mapping(address token => uint32 id) public tokenToProduct;
-
-    /// @notice The token addresses of RabbitX product IDs.
-    mapping(uint32 id => address token) public productToToken;
-
     /// @notice The queue for Elixir to process.
     mapping(uint128 => Spot) public queue;
 
@@ -112,21 +106,10 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
     /// @param hardcap The hardcap of the pool.
     event PoolAdded(uint256 indexed id, address indexed router, uint256 hardcap);
 
-    /// @notice Emitted when tokens are added to a pool.
-    /// @param id The ID of the pool.
-    /// @param tokens The new tokens of the pool.
-    /// @param hardcaps The hardcaps of the added tokens.
-    event PoolTokensAdded(uint256 indexed id, address[] tokens, uint256[] hardcaps);
-
     /// @notice Emitted when a pool's hardcap is updated.
     /// @param id The ID of the pool.
     /// @param hardcap The new hardcap of the pool.
     event PoolHardcapUpdated(uint256 indexed id, uint256 indexed hardcap);
-
-    /// @notice Emitted when the RabbitX product ID of a token is updated.
-    /// @param token The token address.
-    /// @param productId The new RabbitX product ID of the token.
-    event TokenUpdated(address indexed token, uint256 indexed productId);
 
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
@@ -134,15 +117,6 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
 
     /// @notice Emitted when the receiver is the zero address.
     error ZeroAddress();
-
-    /// @notice Emitted when a token is duplicated.
-    /// @param token The duplicated token.
-    error DuplicatedToken(address token);
-
-    /// @notice Emitted when a token is already supported.
-    /// @param token The token address.
-    /// @param id The ID of the pool.
-    error AlreadySupported(address token, uint256 id);
 
     /// @notice Emitted when deposits are paused.
     error DepositsPaused();
@@ -153,44 +127,15 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
     /// @notice Emitted when claims are paused.
     error ClaimsPaused();
 
-    /// @notice Emitted when the length of two arrays don't match.
-    /// @param array1 The uint256 array input.
-    /// @param array2 The address array input.
-    error MismatchInputs(uint256[] array1, address[] array2);
-
     /// @notice Emitted when the hardcap of a pool would be exceeded.
     /// @param hardcap The hardcap of the pool given the token.
     /// @param activeAmount The active amount of tokens in the pool.
     /// @param amount The amount of tokens being deposited.
     error HardcapReached(uint256 hardcap, uint256 activeAmount, uint256 amount);
 
-    /// @notice Emitted when the slippage is too high.
-    /// @param amount The amount of tokens given.
-    /// @param amountLow The low limit of token amounts.
-    /// @param amountHigh The high limit of token amounts.
-    error SlippageTooHigh(uint256 amount, uint256 amountLow, uint256 amountHigh);
-
     /// @notice Emitted when the pool is not valid or used in the incorrect function.
     /// @param id The ID of the pool.
     error InvalidPool(uint256 id);
-
-    /// @notice Emitted when a token is not supported for a pool.
-    /// @param token The address of the unsupported token.
-    /// @param id The ID of the pool.
-    error UnsupportedToken(address token, uint256 id);
-
-    /// @notice Emitted when the token is not valid because it has more than 18 decimals.
-    /// @param token The address of the token.
-    error InvalidToken(address token);
-
-    /// @notice Emitted when the new fee is above 100 USDC.
-    /// @param newFee The new fee.
-    error FeeTooHigh(uint256 newFee);
-
-    /// @notice Emitted when the amount given to withdraw is less than the fee to pay.
-    /// @param amount The amount given to withdraw.
-    /// @param fee The fee to pay.
-    error AmountTooLow(uint256 amount, uint256 fee);
 
     /// @notice Emitted when the given spot ID to unqueue is not valid.
     error InvalidSpot(uint128 spotId, uint128 queueUpTo);
