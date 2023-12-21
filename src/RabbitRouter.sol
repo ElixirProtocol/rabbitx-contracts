@@ -70,6 +70,10 @@ contract RabbitRouter {
         rabbit.deposit(amount);
     }
 
+    function isValidSigner(address signer, uint256) external view returns (bool) {
+        return signer == externalAccount;
+    }
+
     /*//////////////////////////////////////////////////////////////
                              TOKEN TRANSFER
     //////////////////////////////////////////////////////////////*/
