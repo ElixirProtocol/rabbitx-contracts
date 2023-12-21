@@ -359,8 +359,8 @@ contract TestRabbitManager is Test {
     }
 
     /*//////////////////////////////////////////////////////////////
-                     DEPOSIT/WITHDRAWAL SANITY CHECK TESTS
-        //////////////////////////////////////////////////////////////*/
+                    DEPOSIT/WITHDRAWAL SANITY CHECK TESTS
+    //////////////////////////////////////////////////////////////*/
 
     /// @notice Unit test for a failed deposit due to not enough balance but enough approval.
     function testDepositWithNoBalance(uint256 amount) public {
@@ -611,202 +611,119 @@ contract TestRabbitManager is Test {
         manager.upgradeTo(address(0));
     }
 
-    //     /*//////////////////////////////////////////////////////////////
-    //                               OTHER TESTS
-    //     //////////////////////////////////////////////////////////////*/
+    /*//////////////////////////////////////////////////////////////
+                                OTHER TESTS
+    //////////////////////////////////////////////////////////////*/
 
-    //     /// @notice Unit test for getting the next spot in queue.
-    //     function testGetNextSpot() public {
-    //         uint256 amountBTC = 10 * 10 ** 8; // 10 BTC
-    //         uint256 amountUSDC = 100 * 10 ** 6; // 100 USDC
+    /// @notice Unit test for getting the next spot in queue.
+    function testGetNextSpot() public {
+        uint256 amount = 100 * 10 ** USDT.decimals();
 
-    //         deal(address(BTC), address(this), amountBTC);
-    //         deal(address(USDC), address(this), amountUSDC);
+        deal(address(USDT), address(this), amount);
 
-    //         BTC.approve(address(manager), amountBTC);
-    //         USDC.approve(address(manager), amountUSDC);
+        USDT.safeApprove(address(manager), amount);
 
-    //         // Deposit 10 BTC and 100 USDC.
-    //         manager.depositPerp{value: fee}(2, address(BTC), amountBTC, address(this));
-    //         manager.depositPerp{value: fee}(2, address(USDC), amountUSDC, address(this));
-    //         processQueue();
+        manager.deposit(1, amount, address(this));
 
-    //         // Withdraw 10 BTC paying fee in BTC.
-    //         manager.withdrawPerp{value: fee}(2, address(BTC), amountBTC);
+        IRabbitManager.Spot memory spot = manager.nextSpot();
+        IRabbitManager.DepositQueue memory depositTxn = abi.decode(spot.transaction, (IRabbitManager.DepositQueue));
 
-    //         IRabbitManager.Spot memory spot = manager.nextSpot();
-    //         IRabbitManager.WithdrawPerp memory spotTxn = abi.decode(spot.transaction, (IRabbitManager.WithdrawPerp));
+        assertEq(spot.sender, address(this));
+        assertEq(depositTxn.id, 1);
+        assertEq(depositTxn.amount, amount);
 
-    //         assertEq(spot.sender, address(this));
-    //         assertEq(spotTxn.id, 2);
-    //         assertEq(spotTxn.tokenId, 1);
-    //         assertEq(spotTxn.amount, amountBTC);
+        processQueue();
 
-    //         // Withdraw 100 USDC paying fee in USDC.
-    //         manager.withdrawPerp{value: fee}(2, address(USDC), amountUSDC);
+        manager.withdraw(1, amount);
 
-    //         spot = manager.nextSpot();
-    //         spotTxn = abi.decode(spot.transaction, (IRabbitManager.WithdrawPerp));
+        spot = manager.nextSpot();
+        IRabbitManager.WithdrawQueue memory withdrawTxn = abi.decode(spot.transaction, (IRabbitManager.WithdrawQueue));
 
-    //         assertEq(spot.sender, address(this));
-    //         assertEq(spotTxn.id, 2);
-    //         assertEq(spotTxn.tokenId, 1);
-    //         assertEq(spotTxn.amount, amountBTC);
+        assertEq(spot.sender, address(this));
+        assertEq(withdrawTxn.id, 1);
+        assertEq(withdrawTxn.amount, amount);
 
-    //         vm.startPrank(externalAccount);
-    //         manager.unqueue(
-    //             manager.queueUpTo() + 1, abi.encode(IRabbitManager.WithdrawPerpResponse({amountToReceive: amountBTC}))
-    //         );
+        vm.startPrank(externalAccount);
+        manager.unqueue(manager.queueUpTo() + 1, abi.encode(IRabbitManager.WithdrawResponse({amountToReceive: amount})));
 
-    //         spot = manager.nextSpot();
-    //         spotTxn = abi.decode(spot.transaction, (IRabbitManager.WithdrawPerp));
+        spot = manager.nextSpot();
 
-    //         assertEq(spot.sender, address(this));
-    //         assertEq(spotTxn.id, 2);
-    //         assertEq(spotTxn.tokenId, 0);
-    //         assertEq(spotTxn.amount, amountUSDC);
+        assertEq(spot.sender, address(0));
+        assertEq(spot.router, address(0));
+        assertEq(uint8(spot.spotType), uint8(IRabbitManager.SpotType.Empty));
+        assertEq(spot.transaction, "");
+    }
 
-    //         manager.unqueue(
-    //             manager.queueUpTo() + 1, abi.encode(IRabbitManager.WithdrawPerpResponse({amountToReceive: amountUSDC}))
-    //         );
+    /// @notice Unit test for a cross pool deposit, withdraw, and claim flow.
+    function testCrossPool() public {
+        uint256 amount = 100 * 10 ** USDT.decimals();
 
-    //         spot = manager.nextSpot();
+        deal(address(USDT), address(this), amount * 2);
 
-    //         assertEq(spot.sender, address(0));
-    //         assertEq(spot.router, address(0));
-    //         assertEq(uint8(spot.spotType), uint8(IRabbitManager.SpotType.Empty));
-    //         assertEq(spot.transaction, "");
+        USDT.safeApprove(address(manager), amount * 2);
 
-    //         vm.stopPrank();
-    //     }
+        vm.prank(owner);
+        manager.addPool(2, amount, externalAccount);
 
-    //     /// @notice Unit test for a cross product deposit, withdraw, and claim flow.
-    //     function testCrossProduct() public {
-    //         uint72 amountBTC = 1 * 10 ** 8; // 1 BTC
-    //         uint256 amountUSDC = manager.getBalancedAmount(address(BTC), address(USDC), amountBTC);
+        manager.deposit(1, amount, address(this));
+        manager.deposit(2, amount, address(this));
 
-    //         deal(address(BTC), address(this), amountBTC);
-    //         deal(address(USDC), address(this), amountUSDC * 2);
+        processQueue();
 
-    //         BTC.approve(address(manager), amountBTC);
-    //         USDC.approve(address(manager), amountUSDC * 2);
+        manager.withdraw(1, amount);
+        manager.withdraw(2, amount);
 
-    //         manager.depositSpot{value: fee}(
-    //             1, spotTokens[0], spotTokens[1], amountBTC, amountUSDC, amountUSDC, address(this)
-    //         );
-    //         processQueue();
-    //         manager.withdrawSpot{value: fee}(1, spotTokens[0], spotTokens[1], amountBTC);
+        processQueue();
 
-    //         manager.depositPerp{value: fee}(2, address(USDC), amountUSDC, address(this));
-    //         processQueue();
-    //         manager.withdrawPerp{value: fee}(2, address(USDC), amountUSDC);
+        assertEq(
+            manager.getUserPendingAmount(1, address(this)) + manager.getUserPendingAmount(2, address(this)), amount * 2
+        );
 
-    //         processQueue();
-    //         processSlowModeTxs();
+        (address router1,,,) = manager.pools(1);
+        (address router2,,,) = manager.pools(2);
 
-    //         assertEq(
-    //             sumPendingBalance(address(USDC), address(this)),
-    //             (amountUSDC * 2)
-    //                 - (
-    //                     manager.getUserFee(2, address(USDC), address(this))
-    //                         + manager.getUserFee(1, address(USDC), address(this))
-    //                 )
-    //         );
+        // Simulate RabbitX withdrawal of tokens.
+        vm.startPrank(address(rabbit));
+        USDT.safeTransfer(address(router1), amount);
+        USDT.safeTransfer(address(router2), amount);
+        vm.stopPrank();
 
-    //         (address router1,,,) = manager.getPoolToken(1, address(0));
-    //         (address router2,,,) = manager.getPoolToken(2, address(0));
+        manager.claim(address(this), 1);
+        manager.claim(address(this), 2);
 
-    //         assertEq(BTC.balanceOf(router1) + BTC.balanceOf(router2), amountBTC);
-    //         assertEq(USDC.balanceOf(router1) + USDC.balanceOf(router2), amountUSDC * 2);
+        assertEq(USDT.balanceOf(address(this)), amount * 2);
+    }
 
-    //         // used to fail because the pending balance is greater than than the USDC balance of the router1 as the pending balances are grouped by token, not by router or product.
-    //         manager.claim(address(this), spotTokens[0], 1);
-    //         manager.claim(address(this), spotTokens[1], 1);
+    /// @notice Unit test for skipping the spot in the queue.
+    function testSkipSpot() public {
+        uint256 amount = 100 * 10 ** USDT.decimals();
 
-    //         assertEq(BTC.balanceOf(router1) + BTC.balanceOf(router2), 0);
-    //         assertEq(USDC.balanceOf(router1) + USDC.balanceOf(router2), amountUSDC);
+        deal(address(USDT), address(this), amount);
 
-    //         manager.claim(address(this), address(USDC), 2);
+        USDT.safeApprove(address(manager), amount);
 
-    //         assertEq(BTC.balanceOf(router1) + BTC.balanceOf(router2), 0);
-    //         assertEq(USDC.balanceOf(router1) + USDC.balanceOf(router2), 0);
-    //     }
+        manager.deposit(1, amount, address(this));
+        manager.withdraw(1, amount);
 
-    //     /// @notice Unit test for a different fee used for withdraws.
-    //     function testFeesPerPool() public {
-    //         uint256 amountBTC = 10 * 10 ** 8; // 10 BTC
-    //         uint256 amountUSDC = 100 * 10 ** 6; // 100 USDC
+        RabbitManager.Spot memory spot = manager.nextSpot();
+        IRabbitManager.DepositQueue memory spotTxn = abi.decode(spot.transaction, (IRabbitManager.DepositQueue));
 
-    //         deal(address(BTC), address(this), amountBTC);
-    //         deal(address(USDC), address(this), amountUSDC);
+        assertEq(spot.sender, address(this));
+        assertEq(spotTxn.id, 1);
+        assertEq(spotTxn.amount, amount);
+        assertEq(spotTxn.receiver, address(this));
+        assertEq(manager.getUserActiveAmount(1, address(this)), 0);
+        assertEq(manager.getUserPendingAmount(1, address(this)), 0);
 
-    //         BTC.approve(address(manager), amountBTC);
-    //         USDC.approve(address(manager), amountUSDC);
+        // Process tx fails silently and spot is skipped. No changes applied.
+        vm.startPrank(externalAccount);
+        manager.unqueue(1, "");
+        manager.unqueue(2, "");
 
-    //         // Deposit 10 BTC and 100 USDC.
-    //         manager.depositPerp{value: fee}(2, address(BTC), amountBTC, address(this));
-    //         manager.depositPerp{value: fee}(2, address(USDC), amountUSDC, address(this));
-
-    //         // Withdraw 10 BTC paying fee in BTC.
-    //         manager.withdrawPerp{value: fee}(2, address(BTC), amountBTC);
-
-    //         // Withdraw 100 USDC paying fee in USDC.
-    //         manager.withdrawPerp{value: fee}(2, address(USDC), amountUSDC);
-
-    //         processQueue();
-
-    //         // Check that the fees are stored well (are more than 0).
-    //         assertGe(manager.getUserFee(2, address(BTC), address(this)), 0);
-    //         assertGe(manager.getUserFee(2, address(USDC), address(this)), 0);
-
-    //         processSlowModeTxs();
-
-    //         uint256 beforeClaimUSDC = USDC.balanceOf(owner);
-    //         uint256 beforeClaimBTC = BTC.balanceOf(owner);
-
-    //         // Claim and check that the fees and tokens were distributed.
-    //         manager.claim(address(this), address(BTC), 2);
-    //         manager.claim(address(this), address(USDC), 2);
-
-    //         uint256 afterClaimUSDC = USDC.balanceOf(owner);
-    //         uint256 afterClaimBTC = BTC.balanceOf(owner);
-
-    //         assertEq(afterClaimBTC - beforeClaimBTC, manager.getTransactionFee(address(BTC)));
-    //         assertEq(afterClaimUSDC - beforeClaimUSDC, manager.getTransactionFee(address(USDC)));
-    //         assertEq(BTC.balanceOf(address(this)), amountBTC - (afterClaimBTC - beforeClaimBTC));
-    //         assertEq(USDC.balanceOf(address(this)), amountUSDC - (afterClaimUSDC - beforeClaimUSDC));
-    //     }
-
-    //     /// @notice Unit test for skipping the spot in the queue.
-    //     function testSkipSpot() public {
-    //         uint256 amountBTC = manager.getTransactionFee(address(BTC));
-    //         deal(address(BTC), address(this), amountBTC);
-
-    //         BTC.approve(address(manager), amountBTC);
-
-    //         // Deposit BTC and withdraw BTC.
-    //         manager.depositPerp{value: fee}(2, address(BTC), amountBTC, address(this));
-    //         manager.withdrawPerp{value: fee}(2, address(BTC), amountBTC);
-
-    //         RabbitManager.Spot memory spot = manager.nextSpot();
-    //         IRabbitManager.DepositPerp memory spotTxn = abi.decode(spot.transaction, (IRabbitManager.DepositPerp));
-
-    //         assertEq(spot.sender, address(this));
-    //         assertEq(spotTxn.id, 2);
-    //         assertEq(spotTxn.token, address(BTC));
-    //         assertEq(spotTxn.amount, amountBTC);
-    //         assertEq(spotTxn.receiver, address(this));
-
-    //         assertEq(manager.getUserActiveAmount(2, address(BTC), address(this)), 0);
-
-    //         // Process tx fails silently and spot is skipped. No changes applied.
-    //         vm.startPrank(externalAccount);
-    //         manager.unqueue(1, "");
-    //         manager.unqueue(2, "");
-
-    //         assertEq(manager.getUserActiveAmount(2, address(BTC), address(this)), 0);
-    //         assertEq(manager.queueUpTo(), 2);
-    //     }
+        assertEq(manager.getUserActiveAmount(1, address(this)), 0);
+        assertEq(manager.getUserPendingAmount(1, address(this)), 0);
+        assertEq(manager.queueUpTo(), 2);
+    }
 
     //     /// @notice Unit test to check that any remaining fee is transfered back to user.
     //     function testElixirFee() public {
