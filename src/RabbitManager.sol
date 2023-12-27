@@ -18,7 +18,7 @@ import {RabbitRouter} from "src/RabbitRouter.sol";
 /// @title Elixir pool manager for RabbitX
 /// @author The Elixir Team
 /// @custom:security-contact security@elixir.finance
-/// @notice Pool manager contract to provide liquidity for spot and perp market making on RabbitX.
+/// @notice Pool manager contract to provide liquidity for market making on RabbitX.
 contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuard {
     using Math for uint256;
     using SafeERC20 for IERC20Metadata;
@@ -45,7 +45,7 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
     /// @notice The Elixir gas cost for unqueue processing.
     uint256 public elixirGas;
 
-    /// @notice RabbitX' contract.
+    /// @notice The RabbitX contract.
     IRabbitX public rabbit;
 
     /// @notice The pool token for deposits, withdrawals, and claims.
@@ -118,7 +118,7 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Emitted when the receiver is the zero address.
+    /// @notice Emitted when an address is zero.
     error ZeroAddress();
 
     /// @notice Emitted when deposits are paused.
@@ -197,6 +197,7 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
     //////////////////////////////////////////////////////////////*/
 
     /// @notice No constructor in upgradable contracts, so initialized with this function.
+    /// @param _rabbit The RabbitX contract address.
     function initialize(address _rabbit) public initializer {
         __UUPSUpgradeable_init();
         __Ownable_init();
@@ -218,7 +219,7 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
                         DEPOSIT/WITHDRAWAL ENTRY
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Deposit a token into a perp pool.
+    /// @notice Deposit tokens into a pool.
     /// @param id The pool ID.
     /// @param amount The token amount to deposit.
     /// @param receiver The receiver of the virtual LP balance.
@@ -233,7 +234,7 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
         if (receiver == address(0)) revert ZeroAddress();
 
         // Take fee for unqueue transaction.
-        takeElixirFee(pool.router);
+        takeElixirGas(pool.router);
 
         // Add to queue.
         queue[queueCount++] = Spot(
@@ -246,7 +247,7 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
         emit Queued(queue[queueCount - 1], queueCount, queueUpTo);
     }
 
-    /// @notice Requests to withdraw a token from a perp pool.
+    /// @notice Requests to withdraw tokens from a pool.
     /// @dev Requests are placed into a FIFO queue, which is processed by the Elixir market-making network and passed on to RabbitX via the `unqueue` function.
     /// @dev After processed by RabbitX, the user (or anyone on behalf of it) can call the `claim` function.
     /// @param id The ID of the pool to withdraw from.
@@ -259,7 +260,7 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
         if (pool.poolType != PoolType.Perp) revert InvalidPool(id);
 
         // Take fee for unqueue transaction.
-        takeElixirFee(pool.router);
+        takeElixirGas(pool.router);
 
         // Add to queue.
         queue[queueCount++] =
@@ -321,16 +322,16 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
         return pools[id].userPendingAmount[user];
     }
 
-    /// @notice Returns a user's reimbursement fee for a token within a pool.
+    /// @notice Returns a user's Elixir fee for a token within a pool.
     /// @param id The ID of the pool to fetch the fee for.
     /// @param user The user to fetch the fee for.
     function getUserFee(uint256 id, address user) external view returns (uint256) {
         return pools[id].fees[user];
     }
 
-    /// @notice Enforce the Elixir fee in native ETH.
+    /// @notice Enforce the Elixir gas fee in native ETH.
     /// @param router The pool router.
-    function takeElixirFee(address router) private {
+    function takeElixirGas(address router) private {
         // Get the transaction gas price.
         uint256 gasPrice;
 
@@ -338,7 +339,7 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
             gasPrice := gasprice()
         }
 
-        // Fixed gas cost of 2 million as an upper bound of unqueue processing.
+        // ETH cost of the transaction using the stored gas amount.
         uint256 fee = elixirGas * gasPrice;
 
         // Check that the msg.value is equal or more than the fee.
@@ -422,7 +423,7 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
                           PERMISSIONED FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Processes the next spot in the withdraw perp queue.
+    /// @notice Processes the next spot in the queue.
     /// @param spotId The ID of the spot queue to process.
     /// @param response The response to the spot transaction.
     function unqueue(uint128 spotId, bytes memory response) external {
@@ -464,7 +465,7 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
     /// @notice Adds a new pool.
     /// @param id The ID of the new pool.
     /// @param hardcap The hardcap for the pool.
-    /// @param externalAccount The external account to link to RabbitX.
+    /// @param externalAccount The external account to market make on RabbitX.
     function addPool(uint256 id, uint256 hardcap, address externalAccount) external onlyOwner {
         // Check that the pool doesn't exist.
         if (pools[id].router != address(0)) revert InvalidPool(id);

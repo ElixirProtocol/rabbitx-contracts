@@ -93,8 +93,6 @@ contract Handler is CommonBase, StdCheats, StdUtils {
 
         _pay(currentActor, amount);
 
-        // vm.deal(currentActor, fee);
-
         vm.startPrank(currentActor);
 
         USDT.safeApprove(address(manager), amount);
@@ -111,9 +109,7 @@ contract Handler is CommonBase, StdCheats, StdUtils {
     function withdraw(uint256 actorSeed, uint256 amount) public useActor(actorSeed) {
         amount = bound(amount, 0, manager.getUserActiveAmount(1, currentActor));
 
-        // ghost_fees += manager.getTransactionFee(token);
-
-        // vm.deal(currentActor, fee);
+        ghost_fees += amount * manager.elixirFee() / 10_000;
 
         vm.startPrank(currentActor);
 
@@ -174,7 +170,7 @@ contract Handler is CommonBase, StdCheats, StdUtils {
 
         // Simulate RabbitX withdrawal of tokens.
         vm.startPrank(address(rabbit));
-        USDT.safeTransfer(address(router), manager.getUserPendingAmount(id, user));
+        USDT.safeTransfer(address(router), manager.getUserPendingAmount(id, user) + manager.getUserFee(id, user));
         vm.stopPrank();
     }
 

@@ -160,10 +160,13 @@ contract TestRabbitManager is Test {
         // Process queue.
         processQueue();
 
+        // Get the Elixir token fee.
+        uint256 tokenFee = manager.getUserFee(1, address(this));
+
         (,, activeAmount,) = manager.pools(1);
         assertEq(activeAmount, 0);
         assertEq(manager.getUserActiveAmount(1, address(this)), activeAmount);
-        assertEq(manager.getUserPendingAmount(1, address(this)), amount);
+        assertEq(manager.getUserPendingAmount(1, address(this)), amount - tokenFee);
         assertEq(uint256(manager.queueCount()), 2);
         assertEq(uint256(manager.queueUpTo()), 2);
 
@@ -180,8 +183,9 @@ contract TestRabbitManager is Test {
         assertEq(manager.getUserPendingAmount(1, address(this)), 0);
         assertEq(uint256(manager.queueCount()), 2);
         assertEq(uint256(manager.queueUpTo()), 2);
-        assertEq(USDT.balanceOf(address(this)), amount);
-        assertEq(USDT.balanceOf(owner), amount * manager.elixirFee() / 10000);
+        assertEq(tokenFee, amount * manager.elixirFee() / 10000);
+        assertEq(USDT.balanceOf(address(this)), amount - tokenFee);
+        assertEq(USDT.balanceOf(owner), tokenFee);
     }
 
     /// @notice Unit test for a double deposit and withdraw flow in a perp pool.
@@ -240,10 +244,13 @@ contract TestRabbitManager is Test {
         // Process queue.
         processQueue();
 
+        // Get the Elixir token fee.
+        uint256 tokenFee = manager.getUserFee(1, address(this));
+
         (,, activeAmount,) = manager.pools(1);
         assertEq(activeAmount, amount);
         assertEq(manager.getUserActiveAmount(1, address(this)), activeAmount);
-        assertEq(manager.getUserPendingAmount(1, address(this)), amount);
+        assertEq(manager.getUserPendingAmount(1, address(this)), amount - tokenFee);
         assertEq(uint256(manager.queueCount()), 3);
         assertEq(uint256(manager.queueUpTo()), 3);
 
@@ -252,7 +259,7 @@ contract TestRabbitManager is Test {
         (,, activeAmount,) = manager.pools(1);
         assertEq(activeAmount, amount);
         assertEq(manager.getUserActiveAmount(1, address(this)), activeAmount);
-        assertEq(manager.getUserPendingAmount(1, address(this)), amount);
+        assertEq(manager.getUserPendingAmount(1, address(this)), amount - tokenFee);
         assertEq(uint256(manager.queueCount()), 4);
         assertEq(uint256(manager.queueUpTo()), 3);
 
@@ -262,7 +269,7 @@ contract TestRabbitManager is Test {
         (,, activeAmount,) = manager.pools(1);
         assertEq(activeAmount, 0);
         assertEq(manager.getUserActiveAmount(1, address(this)), activeAmount);
-        assertEq(manager.getUserPendingAmount(1, address(this)), amount * 2);
+        assertEq(manager.getUserPendingAmount(1, address(this)), (amount * 2) - (tokenFee * 2));
         assertEq(uint256(manager.queueCount()), 4);
         assertEq(uint256(manager.queueUpTo()), 4);
 
@@ -279,8 +286,9 @@ contract TestRabbitManager is Test {
         assertEq(manager.getUserPendingAmount(1, address(this)), 0);
         assertEq(uint256(manager.queueCount()), 4);
         assertEq(uint256(manager.queueUpTo()), 4);
-        assertEq(USDT.balanceOf(address(this)), amount * 2);
-        assertEq(USDT.balanceOf(owner), 2 * (amount * manager.elixirFee() / 10000));
+        assertEq(tokenFee, amount * manager.elixirFee() / 10000);
+        assertEq(USDT.balanceOf(address(this)), (amount * 2) - (tokenFee * 2));
+        assertEq(USDT.balanceOf(owner), (tokenFee * 2));
     }
 
     /// @notice Unit test for a single deposit and withdraw flow in a perp pool for a different receiver.
@@ -328,12 +336,15 @@ contract TestRabbitManager is Test {
         // Process queue.
         processQueue();
 
+        // Get the Elixir token fee.
+        uint256 tokenFee = manager.getUserFee(1, address(0xbeef));
+
         (,, activeAmount,) = manager.pools(1);
         assertEq(activeAmount, 0);
         assertEq(manager.getUserActiveAmount(1, address(this)), 0);
         assertEq(manager.getUserActiveAmount(1, address(0xbeef)), activeAmount);
         assertEq(manager.getUserPendingAmount(1, address(this)), 0);
-        assertEq(manager.getUserPendingAmount(1, address(0xbeef)), amount);
+        assertEq(manager.getUserPendingAmount(1, address(0xbeef)), amount - tokenFee);
         assertEq(uint256(manager.queueCount()), 2);
         assertEq(uint256(manager.queueUpTo()), 2);
 
@@ -352,9 +363,10 @@ contract TestRabbitManager is Test {
         assertEq(manager.getUserPendingAmount(1, address(0xbeef)), 0);
         assertEq(uint256(manager.queueCount()), 2);
         assertEq(uint256(manager.queueUpTo()), 2);
+        assertEq(tokenFee, amount * manager.elixirFee() / 10000);
         assertEq(USDT.balanceOf(address(this)), 0);
-        assertEq(USDT.balanceOf(address(0xbeef)), amount);
-        assertEq(USDT.balanceOf(owner), amount * manager.elixirFee() / 10000);
+        assertEq(USDT.balanceOf(address(0xbeef)), amount - tokenFee);
+        assertEq(USDT.balanceOf(owner), tokenFee);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -672,8 +684,12 @@ contract TestRabbitManager is Test {
 
         processQueue();
 
+        uint256 amountToReceive =
+            (amount * 2) - (manager.getUserFee(2, address(this)) + manager.getUserFee(1, address(this)));
+
         assertEq(
-            manager.getUserPendingAmount(1, address(this)) + manager.getUserPendingAmount(2, address(this)), amount * 2
+            manager.getUserPendingAmount(1, address(this)) + manager.getUserPendingAmount(2, address(this)),
+            amountToReceive
         );
 
         (address router1,,,) = manager.pools(1);
@@ -688,7 +704,7 @@ contract TestRabbitManager is Test {
         manager.claim(address(this), 1);
         manager.claim(address(this), 2);
 
-        assertEq(USDT.balanceOf(address(this)), amount * 2);
+        assertEq(USDT.balanceOf(address(this)), amountToReceive);
     }
 
     /// @notice Unit test for skipping the spot in the queue.
