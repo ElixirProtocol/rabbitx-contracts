@@ -46,8 +46,7 @@ contract TestInvariantsRabbitManager is Test {
 
         // Deploy and initialize the proxy contract.
         proxy = new ERC1967Proxy(
-            address(rabbitManagerImplementation),
-            abi.encodeWithSignature("initialize(address,uint256)", address(rabbit), 1000000)
+            address(rabbitManagerImplementation), abi.encodeWithSignature("initialize(address)", address(rabbit))
         );
 
         // Wrap in ABI to support easier calls

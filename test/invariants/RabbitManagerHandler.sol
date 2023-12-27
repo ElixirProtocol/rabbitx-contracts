@@ -76,7 +76,12 @@ contract Handler is CommonBase, StdCheats, StdUtils {
         USDT = _usdt;
         externalAccount = _externalAccount;
 
-        // fee = manager.getTransactionFee(address(WETH));
+        // Store the Elixir gas fee for later use.
+        uint256 gasPrice;
+        assembly {
+            gasPrice := gasprice()
+        }
+        fee = manager.elixirGas() * gasPrice;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -94,7 +99,7 @@ contract Handler is CommonBase, StdCheats, StdUtils {
 
         USDT.safeApprove(address(manager), amount);
 
-        manager.deposit(1, amount, currentActor);
+        manager.deposit{value: fee}(1, amount, currentActor);
 
         vm.stopPrank();
 
@@ -112,7 +117,7 @@ contract Handler is CommonBase, StdCheats, StdUtils {
 
         vm.startPrank(currentActor);
 
-        manager.withdraw(1, amount);
+        manager.withdraw{value: fee}(1, amount);
 
         vm.stopPrank();
 

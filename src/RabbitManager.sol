@@ -39,13 +39,16 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
     /// @notice The queue up to.
     uint128 public queueUpTo;
 
-    /// @notice The RabbitX slow mode fee.
-    uint256 public slowModeFee = 1000000;
+    /// @notice The Elixir fee in basis points.
+    uint256 public elixirFee;
+
+    /// @notice The Elixir gas cost for unqueue processing.
+    uint256 public elixirGas;
 
     /// @notice RabbitX' contract.
     IRabbitX public rabbit;
 
-    /// @notice Fee payment token for slow mode transactions through RabbitX.
+    /// @notice The pool token for deposits, withdrawals, and claims.
     IERC20Metadata public token;
 
     /// @notice The pause status of deposits. True if deposits are paused.
@@ -194,17 +197,20 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
     //////////////////////////////////////////////////////////////*/
 
     /// @notice No constructor in upgradable contracts, so initialized with this function.
-    function initialize(address _rabbit, uint256 _slowModeFee) public initializer {
+    function initialize(address _rabbit) public initializer {
         __UUPSUpgradeable_init();
         __Ownable_init();
 
         // Set RabbitX contract.
         rabbit = IRabbitX(_rabbit);
 
-        // Set the slow mode fee.
-        slowModeFee = _slowModeFee;
+        // Set the Elixir fee.
+        elixirFee = 5;
 
-        // Set the deposit token for the pools.
+        // Set the Elixir gas fee.
+        elixirGas = 2_000_000;
+
+        // Set the token for this pool.
         token = IERC20Metadata(rabbit.paymentToken());
     }
 
@@ -227,8 +233,7 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
         if (receiver == address(0)) revert ZeroAddress();
 
         // Take fee for unqueue transaction.
-        // TODO: Uncomment
-        // takeElixirFee(pool.router);
+        takeElixirFee(pool.router);
 
         // Add to queue.
         queue[queueCount++] = Spot(
@@ -254,8 +259,7 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
         if (pool.poolType != PoolType.Perp) revert InvalidPool(id);
 
         // Take fee for unqueue transaction.
-        // TODO: Uncomment
-        // takeElixirFee(pool.router);
+        takeElixirFee(pool.router);
 
         // Add to queue.
         queue[queueCount++] =
@@ -280,8 +284,6 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
         // Fetch the user's pending balance. No danger if amount is 0.
         uint256 amount = pool.userPendingAmount[user];
 
-        // TODO: Implement Elixir fee in token.
-
         // Fetch Elixir's pending fee balance.
         uint256 fee = pool.fees[user];
 
@@ -296,7 +298,7 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
 
         // Transfers the tokens after to prevent reentrancy.
         token.safeTransfer(owner(), fee);
-        IERC20Metadata(token).safeTransfer(user, amount);
+        token.safeTransfer(user, amount);
 
         emit Claim(user, amount);
     }
@@ -326,21 +328,26 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
         return pools[id].fees[user];
     }
 
-    // TODO: Update
-    // /// @notice Enforce the Elixir fee in native ETH.
-    // /// @param router The pool router.
-    // function takeElixirFee(address router) private {
-    //     // Get the Elixir processing fee for unqueue transaction using WETH as token.
-    //     // Safely assumes that WETH ID on RabbitX is 3.
-    //     uint256 fee = getTransactionFee(productToToken[3]);
+    /// @notice Enforce the Elixir fee in native ETH.
+    /// @param router The pool router.
+    function takeElixirFee(address router) private {
+        // Get the transaction gas price.
+        uint256 gasPrice;
 
-    //     // Check that the msg.value is equal or more than the fee.
-    //     if (msg.value < fee) revert FeeTooLow(msg.value, fee);
+        assembly {
+            gasPrice := gasprice()
+        }
 
-    //     // Transfer fee to the external account EOA.
-    //     (bool sent,) = payable(getExternalAccount(router)).call{value: msg.value}("");
-    //     if (!sent) revert FeeTransferFailed();
-    // }
+        // Fixed gas cost of 2 million as an upper bound of unqueue processing.
+        uint256 fee = elixirGas * gasPrice;
+
+        // Check that the msg.value is equal or more than the fee.
+        if (msg.value < fee) revert FeeTooLow(msg.value, fee);
+
+        // Transfer fee to the external account EOA.
+        (bool sent,) = payable(RabbitRouter(router).externalAccount()).call{value: msg.value}("");
+        if (!sent) revert FeeTransferFailed();
+    }
 
     /// @notice Returns the next spot in the queue to process.
     function nextSpot() external view returns (Spot memory) {
@@ -396,8 +403,14 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
             // Substract amount from the active pool market making balance.
             pool.activeAmount -= spotTxn.amount;
 
+            // Get the Elixir fee.
+            uint256 fee = responseTxn.amountToReceive * elixirFee / 10_000;
+
+            // Add fee to the Elixir balance.
+            pool.fees[spot.sender] += fee;
+
             // Update the user pending balance.
-            pool.userPendingAmount[spot.sender] += responseTxn.amountToReceive;
+            pool.userPendingAmount[spot.sender] += (responseTxn.amountToReceive - fee);
 
             emit Withdraw(address(pool.router), spot.sender, responseTxn.amountToReceive);
         } else {

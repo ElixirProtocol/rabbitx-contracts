@@ -75,8 +75,7 @@ contract TestRabbitManager is Test {
 
         // Deploy and initialize the proxy contract.
         proxy = new ERC1967Proxy(
-            address(rabbitManagerImplementation),
-            abi.encodeWithSignature("initialize(address,uint256)", address(rabbit), 1000000)
+            address(rabbitManagerImplementation), abi.encodeWithSignature("initialize(address)", address(rabbit))
         );
 
         // Wrap in ABI to support easier calls
@@ -84,6 +83,14 @@ contract TestRabbitManager is Test {
 
         // Add pool.
         manager.addPool(1, type(uint256).max, externalAccount);
+
+        // Store the Elixir fee for later use.
+        vm.txGasPrice(1000);
+        uint256 gasPrice;
+        assembly {
+            gasPrice := gasprice()
+        }
+        fee = manager.elixirGas() * gasPrice;
 
         vm.stopPrank();
     }
@@ -123,7 +130,7 @@ contract TestRabbitManager is Test {
 
         USDT.safeApprove(address(manager), amount);
 
-        manager.deposit(1, amount, address(this));
+        manager.deposit{value: fee}(1, amount, address(this));
 
         (address router,, uint256 activeAmount,) = manager.pools(1);
         assertEq(activeAmount, 0);
@@ -141,7 +148,7 @@ contract TestRabbitManager is Test {
         assertEq(uint256(manager.queueCount()), 1);
         assertEq(uint256(manager.queueUpTo()), 1);
 
-        manager.withdraw(1, amount);
+        manager.withdraw{value: fee}(1, amount);
 
         (,, activeAmount,) = manager.pools(1);
         assertEq(activeAmount, amount);
@@ -174,8 +181,7 @@ contract TestRabbitManager is Test {
         assertEq(uint256(manager.queueCount()), 2);
         assertEq(uint256(manager.queueUpTo()), 2);
         assertEq(USDT.balanceOf(address(this)), amount);
-        // TODO: Add fees.
-        // assertEq(USDT.balanceOf(owner), manager.getTransactionFee(address(BTC)));
+        assertEq(USDT.balanceOf(owner), amount * manager.elixirFee() / 10000);
     }
 
     /// @notice Unit test for a double deposit and withdraw flow in a perp pool.
@@ -186,7 +192,7 @@ contract TestRabbitManager is Test {
 
         USDT.safeApprove(address(manager), amount * 2);
 
-        manager.deposit(1, amount, address(this));
+        manager.deposit{value: fee}(1, amount, address(this));
 
         (address router,, uint256 activeAmount,) = manager.pools(1);
         assertEq(activeAmount, 0);
@@ -204,7 +210,7 @@ contract TestRabbitManager is Test {
         assertEq(uint256(manager.queueCount()), 1);
         assertEq(uint256(manager.queueUpTo()), 1);
 
-        manager.deposit(1, amount, address(this));
+        manager.deposit{value: fee}(1, amount, address(this));
 
         (,, activeAmount,) = manager.pools(1);
         assertEq(activeAmount, amount);
@@ -222,7 +228,7 @@ contract TestRabbitManager is Test {
         assertEq(uint256(manager.queueCount()), 2);
         assertEq(uint256(manager.queueUpTo()), 2);
 
-        manager.withdraw(1, amount);
+        manager.withdraw{value: fee}(1, amount);
 
         (,, activeAmount,) = manager.pools(1);
         assertEq(activeAmount, amount * 2);
@@ -241,7 +247,7 @@ contract TestRabbitManager is Test {
         assertEq(uint256(manager.queueCount()), 3);
         assertEq(uint256(manager.queueUpTo()), 3);
 
-        manager.withdraw(1, amount);
+        manager.withdraw{value: fee}(1, amount);
 
         (,, activeAmount,) = manager.pools(1);
         assertEq(activeAmount, amount);
@@ -274,8 +280,7 @@ contract TestRabbitManager is Test {
         assertEq(uint256(manager.queueCount()), 4);
         assertEq(uint256(manager.queueUpTo()), 4);
         assertEq(USDT.balanceOf(address(this)), amount * 2);
-        // TODO: Add fees.
-        // assertEq(USDT.balanceOf(owner), manager.getTransactionFee(address(BTC)));
+        assertEq(USDT.balanceOf(owner), 2 * (amount * manager.elixirFee() / 10000));
     }
 
     /// @notice Unit test for a single deposit and withdraw flow in a perp pool for a different receiver.
@@ -286,7 +291,7 @@ contract TestRabbitManager is Test {
 
         USDT.safeApprove(address(manager), amount);
 
-        manager.deposit(1, amount, address(0xbeef));
+        manager.deposit{value: fee}(1, amount, address(0xbeef));
 
         (address router,, uint256 activeAmount,) = manager.pools(1);
         assertEq(activeAmount, 0);
@@ -309,7 +314,7 @@ contract TestRabbitManager is Test {
         assertEq(uint256(manager.queueUpTo()), 1);
 
         vm.prank(address(0xbeef));
-        manager.withdraw(1, amount);
+        manager.withdraw{value: fee}(1, amount);
 
         (,, activeAmount,) = manager.pools(1);
         assertEq(activeAmount, amount);
@@ -349,8 +354,7 @@ contract TestRabbitManager is Test {
         assertEq(uint256(manager.queueUpTo()), 2);
         assertEq(USDT.balanceOf(address(this)), 0);
         assertEq(USDT.balanceOf(address(0xbeef)), amount);
-        // TODO: Add fees.
-        // assertEq(USDT.balanceOf(owner), manager.getTransactionFee(address(BTC)));
+        assertEq(USDT.balanceOf(owner), amount * manager.elixirFee() / 10000);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -365,7 +369,7 @@ contract TestRabbitManager is Test {
 
         deal(address(USDT), address(this), amount);
 
-        manager.deposit(1, amount, address(this));
+        manager.deposit{value: fee}(1, amount, address(this));
 
         USDT.safeTransfer(address(0xbeef), amount);
 
@@ -391,7 +395,7 @@ contract TestRabbitManager is Test {
 
         deal(address(USDT), address(this), amount);
 
-        manager.deposit(1, amount, address(this));
+        manager.deposit{value: fee}(1, amount, address(this));
 
         uint256 userActiveAmount = manager.getUserActiveAmount(1, address(this));
 
@@ -413,14 +417,14 @@ contract TestRabbitManager is Test {
     function testChecks() public {
         // Deposit checks
         vm.expectRevert(abi.encodeWithSelector(RabbitManager.InvalidPool.selector, 69));
-        manager.deposit(69, 1, address(this));
+        manager.deposit{value: fee}(69, 1, address(this));
 
         vm.expectRevert(abi.encodeWithSelector(RabbitManager.ZeroAddress.selector));
-        manager.deposit(1, 1, address(0));
+        manager.deposit{value: fee}(1, 1, address(0));
 
         // Withdraw checks
         vm.expectRevert(abi.encodeWithSelector(RabbitManager.InvalidPool.selector, 69));
-        manager.withdraw(69, 1);
+        manager.withdraw{value: fee}(69, 1);
     }
 
     /// @notice Unit test for all checks in the claim function
@@ -444,14 +448,14 @@ contract TestRabbitManager is Test {
         manager.updatePoolHardcap(1, amount);
 
         // Deposit should succeed because amounts and hardcaps are the same.
-        manager.deposit(1, amount, address(this));
+        manager.deposit{value: fee}(1, amount, address(this));
 
         processQueue();
 
         assertEq(manager.getUserActiveAmount(1, address(this)), amount);
 
         // Deposit request passes but fails silently when processing, so no change is applied.
-        manager.deposit(1, amount, address(this));
+        manager.deposit{value: fee}(1, amount, address(this));
 
         processQueue();
 
@@ -472,10 +476,10 @@ contract TestRabbitManager is Test {
         (address router,,,) = manager.pools(1);
 
         // Deposit queued first.
-        manager.deposit(1, amount, address(this));
+        manager.deposit{value: fee}(1, amount, address(this));
 
         // Withdraw queued second.
-        manager.withdraw(1, amount);
+        manager.withdraw{value: fee}(1, amount);
 
         vm.expectRevert(
             abi.encodeWithSelector(RabbitManager.NotExternalAccount.selector, router, externalAccount, address(this))
@@ -551,7 +555,7 @@ contract TestRabbitManager is Test {
         manager.pause(true, false, false);
 
         vm.expectRevert(RabbitManager.DepositsPaused.selector);
-        manager.deposit(1, 1, address(this));
+        manager.deposit{value: fee}(1, 1, address(this));
     }
 
     /// @notice Unit test for paused withdrawals.
@@ -560,7 +564,7 @@ contract TestRabbitManager is Test {
         manager.pause(false, true, false);
 
         vm.expectRevert(RabbitManager.WithdrawalsPaused.selector);
-        manager.withdraw(1, 1);
+        manager.withdraw{value: fee}(1, 1);
     }
 
     /// @notice Unit test for paused claims.
@@ -580,26 +584,24 @@ contract TestRabbitManager is Test {
     function testInitialize() public {
         // Deploy and initialize the proxy contract.
         new ERC1967Proxy(
-            address(rabbitManagerImplementation),
-            abi.encodeWithSignature("initialize(address,uint256)", address(rabbit), 1000000)
+            address(rabbitManagerImplementation), abi.encodeWithSignature("initialize(address)", address(rabbit))
         );
     }
 
     /// @notice Unit test for failing to initialize the proxy twice.
     function testFailDoubleInitiliaze() public {
-        manager.initialize(address(0), 0);
+        manager.initialize(address(0));
     }
 
-    // TODO: Uncomment
-    // /// @notice Unit test for upgrading the proxy and running a spot single unit test.
-    // function testUpgradeProxy() public {
-    //     // Deploy another implementation and upgrade proxy to it.
-    //     vm.startPrank(owner);
-    //     manager.upgradeTo(address(new RabbitManager()));
-    //     vm.stopPrank();
+    /// @notice Unit test for upgrading the proxy and running a spot single unit test.
+    function testUpgradeProxy() public {
+        // Deploy another implementation and upgrade proxy to it.
+        vm.startPrank(owner);
+        manager.upgradeTo(address(new RabbitManager()));
+        vm.stopPrank();
 
-    //     testSingle(100 * 10 ** USDT.decimals());
-    // }
+        testSingle(uint248(100 * 10 ** USDT.decimals()));
+    }
 
     /// @notice Unit test for failing to upgrade the proxy.
     function testFailUnauthorizedUpgrade() public {
@@ -618,7 +620,7 @@ contract TestRabbitManager is Test {
 
         USDT.safeApprove(address(manager), amount);
 
-        manager.deposit(1, amount, address(this));
+        manager.deposit{value: fee}(1, amount, address(this));
 
         IRabbitManager.Spot memory spot = manager.nextSpot();
         IRabbitManager.DepositQueue memory depositTxn = abi.decode(spot.transaction, (IRabbitManager.DepositQueue));
@@ -629,7 +631,7 @@ contract TestRabbitManager is Test {
 
         processQueue();
 
-        manager.withdraw(1, amount);
+        manager.withdraw{value: fee}(1, amount);
 
         spot = manager.nextSpot();
         IRabbitManager.WithdrawQueue memory withdrawTxn = abi.decode(spot.transaction, (IRabbitManager.WithdrawQueue));
@@ -660,13 +662,13 @@ contract TestRabbitManager is Test {
         vm.prank(owner);
         manager.addPool(2, amount, externalAccount);
 
-        manager.deposit(1, amount, address(this));
-        manager.deposit(2, amount, address(this));
+        manager.deposit{value: fee}(1, amount, address(this));
+        manager.deposit{value: fee}(2, amount, address(this));
 
         processQueue();
 
-        manager.withdraw(1, amount);
-        manager.withdraw(2, amount);
+        manager.withdraw{value: fee}(1, amount);
+        manager.withdraw{value: fee}(2, amount);
 
         processQueue();
 
@@ -697,8 +699,8 @@ contract TestRabbitManager is Test {
 
         USDT.safeApprove(address(manager), amount);
 
-        manager.deposit(1, amount, address(this));
-        manager.withdraw(1, amount);
+        manager.deposit{value: fee}(1, amount, address(this));
+        manager.withdraw{value: fee}(1, amount);
 
         RabbitManager.Spot memory spot = manager.nextSpot();
         IRabbitManager.DepositQueue memory spotTxn = abi.decode(spot.transaction, (IRabbitManager.DepositQueue));
@@ -720,20 +722,112 @@ contract TestRabbitManager is Test {
         assertEq(manager.queueUpTo(), 2);
     }
 
-    //     /// @notice Unit test to check that any remaining fee is transfered back to user.
-    //     function testElixirFee() public {
-    //         uint256 balanceBefore = address(this).balance;
+    /// @notice Unit test to check that the gas fee is applied correctly.
+    function testElixirGas() public {
+        uint256 balanceBefore = address(this).balance;
 
-    //         vm.expectRevert(abi.encodeWithSelector(RabbitManager.FeeTooLow.selector, fee - 1, fee));
-    //         manager.depositPerp{value: fee - 1}(2, address(0), 1, address(this));
+        vm.expectRevert(abi.encodeWithSelector(RabbitManager.FeeTooLow.selector, fee - 1, fee));
+        manager.deposit{value: fee - 1}(1, 1, address(this));
 
-    //         assertEq(address(this).balance, balanceBefore);
-    //         assertEq(externalAccount.balance, 0);
+        assertEq(address(this).balance, balanceBefore);
+        assertEq(externalAccount.balance, 0);
 
-    //         // Deposit BTC to perp pool.
-    //         manager.depositPerp{value: fee + 1}(2, address(0), 1, address(this));
+        // Deposit BTC to perp pool.
+        manager.deposit{value: fee + 1}(1, 1, address(this));
 
-    //         assertEq(address(this).balance, balanceBefore - (fee + 1));
-    //         assertEq(externalAccount.balance, fee + 1);
-    //     }
+        assertEq(address(this).balance, balanceBefore - (fee + 1));
+        assertEq(externalAccount.balance, fee + 1);
+    }
+
+    /// @notice Unit test to check that the Elixir fee is applied correctly.
+    function testElixirFee() public {
+        uint256 amount = 100 * 10 ** USDT.decimals();
+        uint256 tokenFee = amount * manager.elixirFee() / 10_000;
+
+        deal(address(USDT), address(this), amount);
+
+        USDT.safeApprove(address(manager), amount);
+
+        manager.deposit{value: fee}(1, amount, address(this));
+        manager.withdraw{value: fee}(1, amount);
+
+        assertEq(manager.getUserFee(1, address(this)), 0);
+        assertEq(USDT.balanceOf(owner), 0);
+
+        processQueue();
+
+        // Simulate RabbitX withdrawal of tokens.
+        (address router,,,) = manager.pools(1);
+        vm.prank(address(rabbit));
+        USDT.safeTransfer(address(router), amount);
+
+        assertEq(manager.getUserFee(1, address(this)), tokenFee);
+        assertEq(USDT.balanceOf(owner), 0);
+
+        manager.claim(address(this), 1);
+
+        assertEq(manager.getUserFee(1, address(this)), 0);
+        assertEq(USDT.balanceOf(owner), tokenFee);
+    }
+
+    /// @notice Unit test to rescue stuck tokens in manager.
+    function testTokenRescue() public {
+        uint256 amount = 100;
+
+        assertEq(USDT.balanceOf(owner), 0);
+        assertEq(USDT.balanceOf(address(manager)), 0);
+
+        deal(address(USDT), address(manager), amount);
+
+        assertEq(USDT.balanceOf(owner), 0);
+        assertEq(USDT.balanceOf(address(manager)), amount);
+
+        vm.startPrank(owner);
+        manager.rescue(USDT.balanceOf(address(manager)));
+        vm.stopPrank();
+
+        assertEq(USDT.balanceOf(owner), amount);
+        assertEq(USDT.balanceOf(address(manager)), 0);
+    }
+
+    /// @notice Unit test to check when the external account can't accept funds.
+    function testInvalidExternalAccount() public {
+        vm.prank(owner);
+        manager.addPool(100, type(uint256).max, address(this));
+
+        uint256 amount = 100 * 10 ** USDT.decimals();
+
+        deal(address(USDT), address(this), amount);
+
+        USDT.safeApprove(address(manager), amount);
+
+        vm.expectRevert(abi.encodeWithSelector(RabbitManager.FeeTransferFailed.selector));
+        manager.deposit{value: fee}(100, amount, address(this));
+    }
+
+    /// @notice Unit test to check that only manager itself can call the unqueue function.
+    function testUnauthorizedUnqueue() public {
+        uint256 amount = 100 * 10 ** USDT.decimals();
+
+        deal(address(USDT), address(this), amount);
+
+        USDT.safeApprove(address(manager), amount);
+
+        manager.deposit{value: fee}(1, amount, address(this));
+
+        RabbitManager.Spot memory spot = manager.nextSpot();
+
+        vm.expectRevert(abi.encodeWithSelector(RabbitManager.NotSelf.selector));
+        manager.processSpot(spot, "");
+    }
+
+    /// @notice Unit test to check that invalid queue spots are skipped.
+    function testInvalidQueue() public {
+        IRabbitManager.Spot memory spot =
+            IRabbitManager.Spot(address(this), address(this), IRabbitManager.SpotType.Empty, "");
+
+        vm.prank(address(manager));
+        vm.expectRevert(abi.encodeWithSelector(RabbitManager.InvalidSpotType.selector, spot));
+        manager.processSpot(spot, "");
+    }
 }
