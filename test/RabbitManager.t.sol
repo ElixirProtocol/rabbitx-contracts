@@ -8,7 +8,6 @@ import {Utils} from "./utils/Utils.sol";
 import {IERC20Metadata} from "openzeppelin/token/ERC20/extensions/IERC20Metadata.sol";
 import {SafeERC20} from "openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import {ERC1967Proxy} from "openzeppelin/proxy/ERC1967/ERC1967Proxy.sol";
-import {Math} from "openzeppelin/utils/math/Math.sol";
 
 import {IRabbitX} from "src/interfaces/IRabbitX.sol";
 
@@ -16,7 +15,6 @@ import {RabbitManager, IRabbitManager} from "src/RabbitManager.sol";
 import {RabbitRouter} from "src/RabbitRouter.sol";
 
 contract TestRabbitManager is Test {
-    using Math for uint256;
     using SafeERC20 for IERC20Metadata;
 
     /*//////////////////////////////////////////////////////////////
@@ -51,9 +49,6 @@ contract TestRabbitManager is Test {
     // Utils contract.
     Utils public utils;
 
-    // RPC for Mainnet fork.
-    string public networkRpcUrl = vm.envString("MAINNET_RPC_URL");
-
     // Elixir fee
     uint256 public fee;
 
@@ -71,7 +66,7 @@ contract TestRabbitManager is Test {
         externalAccount = users[1];
         vm.label(externalAccount, "External Account");
 
-        vm.createSelectFork(networkRpcUrl, 18829846);
+        vm.createSelectFork(vm.envString("MAINNET_RPC_URL"), 18829846);
 
         vm.startPrank(owner);
 
