@@ -11,6 +11,16 @@ See the [documentation](docs/docs.md), the [Elixir Protocol documentation](https
 ## Deployments
 
 <table>
+<tr>
+<th>Network</th>
+<th>RabbitManager</th>
+<th>Router (ID 1)</th>
+</tr>
+<tr>
+<td>Ethereum Sepolia</td>
+<td><code>0x82dF40dea5E618725E7C7fB702b80224A1BB771F</code></td>
+<td><code>0x393c45709968382Ee52dFf31aafeDeCA3B9654fC</code></td>
+</tr>
 </table>
 
 ## Documentation

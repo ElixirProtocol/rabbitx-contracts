@@ -5,7 +5,6 @@ import "forge-std/Script.sol";
 
 import {IRabbitX, RabbitManager, IRabbitManager} from "src/RabbitManager.sol";
 import {ERC1967Proxy} from "openzeppelin/proxy/ERC1967/ERC1967Proxy.sol";
-import {IERC20Metadata} from "openzeppelin/token/ERC20/extensions/IERC20Metadata.sol";
 
 abstract contract DeployBase is Script {
     // Environment specific variables.
@@ -24,7 +23,7 @@ abstract contract DeployBase is Script {
 
     function setup() internal {
         // Start broadcast.
-        vm.startBroadcast();
+        vm.startBroadcast(vm.envUint("KEY"));
 
         // Deploy Factory implementation.
         managerImplementation = new RabbitManager();
