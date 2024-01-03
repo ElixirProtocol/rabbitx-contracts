@@ -14,7 +14,7 @@ See the [documentation](docs/docs.md), the [Elixir Protocol documentation](https
 <tr>
 <th>Network</th>
 <th>RabbitManager</th>
-<th>Router (ID 1)</th>
+<th>Router BTC (ID 1)</th>
 </tr>
 <tr>
 <td>Ethereum Sepolia</td>
