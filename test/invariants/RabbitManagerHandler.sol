@@ -189,7 +189,17 @@ contract Handler is CommonBase, StdCheats, StdUtils {
                 IRabbitManager.WithdrawQueue memory spotTxn =
                     abi.decode(spot.transaction, (IRabbitManager.WithdrawQueue));
 
-                manager.unqueue(i, abi.encode(IRabbitManager.WithdrawResponse({amountToReceive: spotTxn.amount})));
+                manager.unqueue(
+                    i,
+                    abi.encode(
+                        IRabbitManager.WithdrawResponse({
+                            amountToReceive: spotTxn.amount,
+                            v: 0,
+                            r: bytes32(0),
+                            s: bytes32(0)
+                        })
+                    )
+                );
             } else {}
         }
 

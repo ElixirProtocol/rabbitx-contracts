@@ -413,6 +413,16 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
             // Update the user pending balance.
             pool.userPendingAmount[spot.sender] += (responseTxn.amountToReceive - fee);
 
+            // Withdraw funds from RabbitX via router.
+            rabbit.withdraw(
+                spotTxn.id,
+                address(pool.router),
+                responseTxn.amountToReceive,
+                responseTxn.v,
+                responseTxn.r,
+                responseTxn.s
+            );
+
             emit Withdraw(address(pool.router), spot.sender, responseTxn.amountToReceive);
         } else {
             revert InvalidSpotType(spot);

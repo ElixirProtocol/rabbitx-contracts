@@ -111,7 +111,17 @@ contract TestRabbitManager is Test {
                 IRabbitManager.WithdrawQueue memory spotTxn =
                     abi.decode(spot.transaction, (IRabbitManager.WithdrawQueue));
 
-                manager.unqueue(i, abi.encode(IRabbitManager.WithdrawResponse({amountToReceive: spotTxn.amount})));
+                manager.unqueue(
+                    i,
+                    abi.encode(
+                        IRabbitManager.WithdrawResponse({
+                            amountToReceive: spotTxn.amount,
+                            v: 0,
+                            r: bytes32(0),
+                            s: bytes32(0)
+                        })
+                    )
+                );
             } else {}
         }
 
@@ -653,7 +663,10 @@ contract TestRabbitManager is Test {
         assertEq(withdrawTxn.amount, amount);
 
         vm.startPrank(externalAccount);
-        manager.unqueue(manager.queueUpTo() + 1, abi.encode(IRabbitManager.WithdrawResponse({amountToReceive: amount})));
+        manager.unqueue(
+            manager.queueUpTo() + 1,
+            abi.encode(IRabbitManager.WithdrawResponse({amountToReceive: amount, v: 0, r: bytes32(0), s: bytes32(0)}))
+        );
 
         spot = manager.nextSpot();
 

@@ -37,6 +37,10 @@ interface IRabbitManager {
     struct WithdrawResponse {
         // The amount of of tokens the user should receive.
         uint256 amountToReceive;
+        // The signature parameters received from RabbitX to claim withdrawal.
+        uint8 v;
+        bytes32 r;
+        bytes32 s;
     }
 
     /// @notice The types of pools supported by this contract.
