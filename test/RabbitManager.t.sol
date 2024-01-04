@@ -39,6 +39,9 @@ contract TestRabbitManager is Test {
     // Elixir users
     address public owner;
 
+    // RabbitX signer
+    address public signer;
+
     // Off-chain validator account that makes request on behalf of the vaults.
     address public externalAccount;
 
@@ -51,6 +54,24 @@ contract TestRabbitManager is Test {
 
     // Elixir fee
     uint256 public fee;
+
+    // Random private key of signer.
+    uint256 public privateKey = 0x12345;
+
+    // EIP712 domain hash.
+    bytes32 public eip712DomainHash;
+
+    // cast keccak "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+    bytes32 public constant TYPEHASH = 0x8b73c3c69bb8fe3d512ecc4cf759cc79239f7b179b0ffacaa9a75d522b39400f;
+
+    // cast keccak "withdrawal(uint256 id,address trader,uint256 amount)"
+    bytes32 public constant WITHDRAWAL_TYPEHASH = 0xec976281d6462ad970e7a9251148e624b8aa376c6857d4245700b1b711bb0884;
+
+    struct Withdrawal {
+        uint256 id;
+        address trader;
+        uint256 amount;
+    }
 
     /*//////////////////////////////////////////////////////////////
                                  HELPERS
@@ -65,6 +86,8 @@ contract TestRabbitManager is Test {
 
         externalAccount = users[1];
         vm.label(externalAccount, "External Account");
+
+        signer = vm.addr(privateKey);
 
         vm.createSelectFork(vm.envString("MAINNET_RPC_URL"), 18829846);
 
@@ -93,6 +116,17 @@ contract TestRabbitManager is Test {
         fee = manager.elixirGas() * gasPrice;
 
         vm.stopPrank();
+
+        // Overwrite the RabbitX signer to use custom one.
+        vm.prank(rabbit.owner());
+        rabbit.changeSigner(signer);
+
+        // Set the domain hash.
+        eip712DomainHash = keccak256(
+            abi.encode(
+                TYPEHASH, keccak256(bytes("RabbitXWithdrawal")), keccak256(bytes("1")), block.chainid, address(rabbit)
+            )
+        );
     }
 
     /// @notice Processes any transactions in the Elixir queue.
@@ -111,14 +145,17 @@ contract TestRabbitManager is Test {
                 IRabbitManager.WithdrawQueue memory spotTxn =
                     abi.decode(spot.transaction, (IRabbitManager.WithdrawQueue));
 
+                (uint8 v, bytes32 r, bytes32 s) = generateSignature(Withdrawal(i, spot.router, spotTxn.amount));
+
                 manager.unqueue(
                     i,
                     abi.encode(
                         IRabbitManager.WithdrawResponse({
                             amountToReceive: spotTxn.amount,
-                            v: 0,
-                            r: bytes32(0),
-                            s: bytes32(0)
+                            withdrawalId: i,
+                            v: v,
+                            r: r,
+                            s: s
                         })
                     )
                 );
@@ -126,6 +163,17 @@ contract TestRabbitManager is Test {
         }
 
         vm.stopPrank();
+    }
+
+    function generateSignature(Withdrawal memory withdrawal) public view returns (uint8 v, bytes32 r, bytes32 s) {
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                eip712DomainHash,
+                keccak256(abi.encode(WITHDRAWAL_TYPEHASH, withdrawal.id, withdrawal.trader, withdrawal.amount))
+            )
+        );
+        (v, r, s) = vm.sign(privateKey, digest);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -142,7 +190,7 @@ contract TestRabbitManager is Test {
 
         manager.deposit{value: fee}(1, amount, address(this));
 
-        (address router,, uint256 activeAmount,) = manager.pools(1);
+        (,, uint256 activeAmount,) = manager.pools(1);
         assertEq(activeAmount, 0);
         assertEq(manager.getUserActiveAmount(1, address(this)), activeAmount);
         assertEq(manager.getUserPendingAmount(1, address(this)), 0);
@@ -180,10 +228,6 @@ contract TestRabbitManager is Test {
         assertEq(uint256(manager.queueCount()), 2);
         assertEq(uint256(manager.queueUpTo()), 2);
 
-        // Simulate RabbitX withdrawal of tokens.
-        vm.prank(address(rabbit));
-        USDT.safeTransfer(address(router), amount);
-
         // Claim tokens.
         manager.claim(address(this), 1);
 
@@ -208,7 +252,7 @@ contract TestRabbitManager is Test {
 
         manager.deposit{value: fee}(1, amount, address(this));
 
-        (address router,, uint256 activeAmount,) = manager.pools(1);
+        (,, uint256 activeAmount,) = manager.pools(1);
         assertEq(activeAmount, 0);
         assertEq(manager.getUserActiveAmount(1, address(this)), activeAmount);
         assertEq(manager.getUserPendingAmount(1, address(this)), 0);
@@ -283,10 +327,6 @@ contract TestRabbitManager is Test {
         assertEq(uint256(manager.queueCount()), 4);
         assertEq(uint256(manager.queueUpTo()), 4);
 
-        // Simulate RabbitX withdrawal of tokens.
-        vm.prank(address(rabbit));
-        USDT.safeTransfer(address(router), amount * 2);
-
         // Claim tokens.
         manager.claim(address(this), 1);
 
@@ -311,7 +351,7 @@ contract TestRabbitManager is Test {
 
         manager.deposit{value: fee}(1, amount, address(0xbeef));
 
-        (address router,, uint256 activeAmount,) = manager.pools(1);
+        (,, uint256 activeAmount,) = manager.pools(1);
         assertEq(activeAmount, 0);
         assertEq(manager.getUserActiveAmount(1, address(this)), 0);
         assertEq(manager.getUserActiveAmount(1, address(0xbeef)), activeAmount);
@@ -357,10 +397,6 @@ contract TestRabbitManager is Test {
         assertEq(manager.getUserPendingAmount(1, address(0xbeef)), amount - tokenFee);
         assertEq(uint256(manager.queueCount()), 2);
         assertEq(uint256(manager.queueUpTo()), 2);
-
-        // Simulate RabbitX withdrawal of tokens.
-        vm.prank(address(rabbit));
-        USDT.safeTransfer(address(router), amount);
 
         // Claim tokens.
         manager.claim(address(0xbeef), 1);
@@ -662,10 +698,20 @@ contract TestRabbitManager is Test {
         assertEq(withdrawTxn.id, 1);
         assertEq(withdrawTxn.amount, amount);
 
+        (uint8 v, bytes32 r, bytes32 s) = generateSignature(Withdrawal(manager.queueUpTo(), spot.router, amount));
+
         vm.startPrank(externalAccount);
         manager.unqueue(
             manager.queueUpTo() + 1,
-            abi.encode(IRabbitManager.WithdrawResponse({amountToReceive: amount, v: 0, r: bytes32(0), s: bytes32(0)}))
+            abi.encode(
+                IRabbitManager.WithdrawResponse({
+                    amountToReceive: amount,
+                    withdrawalId: manager.queueUpTo(),
+                    v: v,
+                    r: r,
+                    s: s
+                })
+            )
         );
 
         spot = manager.nextSpot();
@@ -704,15 +750,6 @@ contract TestRabbitManager is Test {
             manager.getUserPendingAmount(1, address(this)) + manager.getUserPendingAmount(2, address(this)),
             amountToReceive
         );
-
-        (address router1,,,) = manager.pools(1);
-        (address router2,,,) = manager.pools(2);
-
-        // Simulate RabbitX withdrawal of tokens.
-        vm.startPrank(address(rabbit));
-        USDT.safeTransfer(address(router1), amount);
-        USDT.safeTransfer(address(router2), amount);
-        vm.stopPrank();
 
         manager.claim(address(this), 1);
         manager.claim(address(this), 2);
@@ -784,11 +821,6 @@ contract TestRabbitManager is Test {
         assertEq(USDT.balanceOf(owner), 0);
 
         processQueue();
-
-        // Simulate RabbitX withdrawal of tokens.
-        (address router,,,) = manager.pools(1);
-        vm.prank(address(rabbit));
-        USDT.safeTransfer(address(router), amount);
 
         assertEq(manager.getUserFee(1, address(this)), tokenFee);
         assertEq(USDT.balanceOf(owner), 0);

@@ -194,6 +194,7 @@ contract Handler is CommonBase, StdCheats, StdUtils {
                     abi.encode(
                         IRabbitManager.WithdrawResponse({
                             amountToReceive: spotTxn.amount,
+                            withdrawalId: i,
                             v: 0,
                             r: bytes32(0),
                             s: bytes32(0)

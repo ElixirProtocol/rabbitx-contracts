@@ -37,6 +37,8 @@ interface IRabbitManager {
     struct WithdrawResponse {
         // The amount of of tokens the user should receive.
         uint256 amountToReceive;
+        // The withdrawal ID received from RabbitX.
+        uint256 withdrawalId;
         // The signature parameters received from RabbitX to claim withdrawal.
         uint8 v;
         bytes32 r;

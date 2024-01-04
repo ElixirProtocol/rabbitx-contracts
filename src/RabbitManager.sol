@@ -416,8 +416,8 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
             // Withdraw funds from RabbitX.
             // TODO: What happens if someone front-runs this? i.e. the HB unqueue
             rabbit.withdraw(
-                spotTxn.id,
-                address(pool.router),
+                responseTxn.withdrawalId,
+                spot.router,
                 responseTxn.amountToReceive,
                 responseTxn.v,
                 responseTxn.r,
