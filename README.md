@@ -15,11 +15,17 @@ See the [documentation](docs/docs.md), the [Elixir Protocol documentation](https
 <th>Network</th>
 <th>RabbitManager</th>
 <th>Router BTC (ID 1)</th>
+<th>Router ETH (ID 2)</th>
+<th>Router SOL (ID 3)</th>
+<th>Router ARB (ID 4)</th>
 </tr>
 <tr>
 <td>Ethereum Sepolia</td>
 <td><code>0x82dF40dea5E618725E7C7fB702b80224A1BB771F</code></td>
 <td><code>0x393c45709968382Ee52dFf31aafeDeCA3B9654fC</code></td>
+<td><code>0x58c66f107A1C129A4865c2f1EDc33eFd38A2f020</code></td>
+<td><code>0xf5b2C3A4eb7Fd59F5FBE512EEb1aa98358242FD5</code></td>
+<td><code>0xa13a4b97aB259808b10ffA58f08589063eD99943</code></td>
 </tr>
 </table>
 
