@@ -47,9 +47,6 @@ contract Distributor is Ownable, EIP712 {
     /// @notice Error emitted when the ECDSA signer is not correct.
     error InvalidSignature();
 
-    /// @notice Error emitted when the user has already claimed.
-    error AlreadyClaimed();
-
     /// @notice Error emitted when the amount is zero.
     error InvalidAmount();
 
