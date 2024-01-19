@@ -15,9 +15,12 @@ contract AddPool is Script {
         // Wrap in ABI to support easier calls.
         manager = RabbitManager(0x82dF40dea5E618725E7C7fB702b80224A1BB771F);
 
-        manager.addPool(2, type(uint256).max, 0x28CcdB531854d09D48733261688dc1679fb9A242);
-        manager.addPool(3, type(uint256).max, 0x28CcdB531854d09D48733261688dc1679fb9A242);
-        manager.addPool(4, type(uint256).max, 0x28CcdB531854d09D48733261688dc1679fb9A242);
+        // For loop starting from ID 5.
+        for (uint256 i = 5; i < 32; i++) {
+            manager.addPool(i, type(uint256).max, 0x28CcdB531854d09D48733261688dc1679fb9A242);
+            (address router,,,) = manager.pools(i);
+            console.log("Pool %s: %s", i, router);
+        }
 
         vm.stopBroadcast();
     }
