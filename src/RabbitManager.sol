@@ -454,6 +454,7 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
             }
         } else {
             // Intetionally skip.
+            spot.state = SpotState.Skipped;
         }
 
         // Increase the queue up to.
