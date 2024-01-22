@@ -9,6 +9,14 @@ interface IRabbitManager {
         Withdraw
     }
 
+    /// @notice The states of spots in the queue.
+    enum SpotState {
+        Empty,
+        Queued,
+        Executed,
+        Skipped
+    }
+
     /// @notice The structure for perp deposits to be processed by Elixir.
     struct DepositQueue {
         // The ID of the pool.
@@ -73,5 +81,7 @@ interface IRabbitManager {
         SpotType spotType;
         // The transaction to process.
         bytes transaction;
+        // The state of the spot.
+        SpotState state;
     }
 }

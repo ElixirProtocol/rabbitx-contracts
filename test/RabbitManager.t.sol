@@ -839,8 +839,9 @@ contract TestRabbitManager is Test {
 
     /// @notice Unit test to check that invalid queue spots are skipped.
     function testInvalidQueue() public {
-        IRabbitManager.Spot memory spot =
-            IRabbitManager.Spot(address(this), address(this), IRabbitManager.SpotType.Empty, "");
+        IRabbitManager.Spot memory spot = IRabbitManager.Spot(
+            address(this), address(this), IRabbitManager.SpotType.Empty, "", IRabbitManager.SpotState.Queued
+        );
 
         vm.prank(address(manager));
         vm.expectRevert(abi.encodeWithSelector(RabbitManager.InvalidSpotType.selector, spot));

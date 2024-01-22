@@ -241,7 +241,8 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
             msg.sender,
             pool.router,
             SpotType.Deposit,
-            abi.encode(DepositQueue({id: id, amount: amount, receiver: receiver}))
+            abi.encode(DepositQueue({id: id, amount: amount, receiver: receiver})),
+            SpotState.Queued
         );
 
         emit Queued(queue[queueCount - 1], queueCount, queueUpTo);
@@ -263,8 +264,13 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
         takeElixirGas(pool.router);
 
         // Add to queue.
-        queue[queueCount++] =
-            Spot(msg.sender, pool.router, SpotType.Withdraw, abi.encode(WithdrawQueue({id: id, amount: amount})));
+        queue[queueCount++] = Spot(
+            msg.sender,
+            pool.router,
+            SpotType.Withdraw,
+            abi.encode(WithdrawQueue({id: id, amount: amount})),
+            SpotState.Queued
+        );
 
         emit Queued(queue[queueCount - 1], queueCount, queueUpTo);
     }
@@ -441,7 +447,11 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
             if (spotId != queueUpTo + 1) revert InvalidSpot(spotId, queueUpTo);
 
             // Process spot. Skips if fail or revert.
-            try this.processSpot(spot, response) {} catch {}
+            try this.processSpot(spot, response) {
+                spot.state = SpotState.Executed;
+            } catch {
+                spot.state = SpotState.Skipped;
+            }
         } else {
             // Intetionally skip.
         }
