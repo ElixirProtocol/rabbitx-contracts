@@ -160,6 +160,11 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
     /// @notice Emitted when the fee transfer fails.
     error FeeTransferFailed();
 
+    /// @notice Emitted when the user has insufficient active balance.
+    /// @param activeAmount The active amount of the user.
+    /// @param amount The amount the user is trying to withdraw.
+    error InsufficientActiveBalance(uint256 activeAmount, uint256 amount);
+
     /*//////////////////////////////////////////////////////////////
                                 MODIFIERS
     //////////////////////////////////////////////////////////////*/
@@ -241,7 +246,8 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
             msg.sender,
             pool.router,
             SpotType.Deposit,
-            abi.encode(DepositQueue({id: id, amount: amount, receiver: receiver}))
+            abi.encode(DepositQueue({id: id, amount: amount, receiver: receiver})),
+            SpotState.Queued
         );
 
         emit Queued(queue[queueCount - 1], queueCount, queueUpTo);
@@ -259,12 +265,23 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
         // Check that the pool exists.
         if (pool.poolType != PoolType.Perp) revert InvalidPool(id);
 
+        // Get the user active amount.
+        uint256 activeAmount = pool.userActiveAmount[msg.sender];
+
+        // Check that the user has enough active balance.
+        if (activeAmount < amount) revert InsufficientActiveBalance(activeAmount, amount);
+
         // Take fee for unqueue transaction.
         takeElixirGas(pool.router);
 
         // Add to queue.
-        queue[queueCount++] =
-            Spot(msg.sender, pool.router, SpotType.Withdraw, abi.encode(WithdrawQueue({id: id, amount: amount})));
+        queue[queueCount++] = Spot(
+            msg.sender,
+            pool.router,
+            SpotType.Withdraw,
+            abi.encode(WithdrawQueue({id: id, amount: amount})),
+            SpotState.Queued
+        );
 
         emit Queued(queue[queueCount - 1], queueCount, queueUpTo);
     }
@@ -428,7 +445,7 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
     /// @param response The response to the spot transaction.
     function unqueue(uint128 spotId, bytes memory response) external {
         // Get the spot data from the queue.
-        Spot memory spot = queue[queueUpTo];
+        Spot storage spot = queue[queueUpTo];
 
         // Get the external account of the router.
         address externalAccount = RabbitRouter(spot.router).externalAccount();
@@ -441,9 +458,14 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
             if (spotId != queueUpTo + 1) revert InvalidSpot(spotId, queueUpTo);
 
             // Process spot. Skips if fail or revert.
-            try this.processSpot(spot, response) {} catch {}
+            try this.processSpot(spot, response) {
+                spot.state = SpotState.Executed;
+            } catch {
+                spot.state = SpotState.Skipped;
+            }
         } else {
             // Intetionally skip.
+            spot.state = SpotState.Skipped;
         }
 
         // Increase the queue up to.
