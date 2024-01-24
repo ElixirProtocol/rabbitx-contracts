@@ -160,6 +160,11 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
     /// @notice Emitted when the fee transfer fails.
     error FeeTransferFailed();
 
+    /// @notice Emitted when the user has insufficient active balance.
+    /// @param activeAmount The active amount of the user.
+    /// @param amount The amount the user is trying to withdraw.
+    error InsufficientActiveBalance(uint256 activeAmount, uint256 amount);
+
     /*//////////////////////////////////////////////////////////////
                                 MODIFIERS
     //////////////////////////////////////////////////////////////*/
@@ -259,6 +264,12 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
 
         // Check that the pool exists.
         if (pool.poolType != PoolType.Perp) revert InvalidPool(id);
+
+        // Get the user active amount.
+        uint256 activeAmount = pool.userActiveAmount[msg.sender];
+
+        // Check that the user has enough active balance.
+        if (activeAmount < amount) revert InsufficientActiveBalance(activeAmount, amount);
 
         // Take fee for unqueue transaction.
         takeElixirGas(pool.router);

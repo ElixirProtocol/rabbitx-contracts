@@ -440,6 +440,9 @@ contract TestRabbitManager is Test {
         // Withdraw checks
         vm.expectRevert(abi.encodeWithSelector(RabbitManager.InvalidPool.selector, 69));
         manager.withdraw{value: fee}(69, 1);
+
+        vm.expectRevert(abi.encodeWithSelector(RabbitManager.InsufficientActiveBalance.selector, 0, 1));
+        manager.withdraw{value: fee}(1, 1);
     }
 
     /// @notice Unit test for all checks in the claim function
@@ -492,9 +495,6 @@ contract TestRabbitManager is Test {
 
         // Deposit queued first.
         manager.deposit{value: fee}(1, amount, address(this));
-
-        // Withdraw queued second.
-        manager.withdraw{value: fee}(1, amount);
 
         vm.expectRevert(
             abi.encodeWithSelector(RabbitManager.NotExternalAccount.selector, router, externalAccount, address(this))
@@ -719,7 +719,6 @@ contract TestRabbitManager is Test {
         USDT.safeApprove(address(manager), amount);
 
         manager.deposit{value: fee}(1, amount, address(this));
-        manager.withdraw{value: fee}(1, amount);
 
         RabbitManager.Spot memory spot = manager.nextSpot();
         IRabbitManager.DepositQueue memory spotTxn = abi.decode(spot.transaction, (IRabbitManager.DepositQueue));
@@ -734,11 +733,10 @@ contract TestRabbitManager is Test {
         // Process tx fails silently and spot is skipped. No changes applied.
         vm.startPrank(externalAccount);
         manager.unqueue(1, "");
-        manager.unqueue(2, "");
 
         assertEq(manager.getUserActiveAmount(1, address(this)), 0);
         assertEq(manager.getUserPendingAmount(1, address(this)), 0);
-        assertEq(manager.queueUpTo(), 2);
+        assertEq(manager.queueUpTo(), 1);
     }
 
     /// @notice Unit test to check that the gas fee is applied correctly.
@@ -768,6 +766,9 @@ contract TestRabbitManager is Test {
         USDT.safeApprove(address(manager), amount);
 
         manager.deposit{value: fee}(1, amount, address(this));
+
+        processQueue();
+
         manager.withdraw{value: fee}(1, amount);
 
         assertEq(manager.getUserFee(1, address(this)), 0);
