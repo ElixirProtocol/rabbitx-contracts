@@ -434,7 +434,7 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
     /// @param response The response to the spot transaction.
     function unqueue(uint128 spotId, bytes memory response) external {
         // Get the spot data from the queue.
-        Spot memory spot = queue[queueUpTo];
+        Spot storage spot = queue[queueUpTo];
 
         // Get the external account of the router.
         address externalAccount = RabbitRouter(spot.router).externalAccount();

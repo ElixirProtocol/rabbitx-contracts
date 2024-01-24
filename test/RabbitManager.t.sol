@@ -112,6 +112,9 @@ contract TestRabbitManager is Test {
                     abi.decode(spot.transaction, (IRabbitManager.WithdrawQueue));
 
                 manager.unqueue(i, abi.encode(IRabbitManager.WithdrawResponse({amountToReceive: spotTxn.amount})));
+
+                (,,,, IRabbitManager.SpotState state) = manager.queue(i - 1);
+                assertEq(uint8(state), uint8(IRabbitManager.SpotState.Executed));
             } else {}
         }
 
