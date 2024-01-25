@@ -86,7 +86,7 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
     /// @param amount The token amount the user receives.
     event Withdraw(address indexed router, address indexed user, uint256 indexed amount);
 
-    /// @notice Emitted when a perp withdrawal is queued.
+    /// @notice Emitted when a deposit/withdrawal is queued.
     /// @param spot The spot added to the queue.
     /// @param queueCount The queue count.
     /// @param queueUpTo The queue up to.
