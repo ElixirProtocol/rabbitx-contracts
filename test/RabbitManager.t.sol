@@ -739,7 +739,7 @@ contract TestRabbitManager is Test {
         assertEq(manager.queueUpTo(), 1);
     }
 
-    /// @notice Unit test to check that the gas fee is applied correctly.
+    /// @notice Unit test to check that the gas fee is applied and updated correctly.
     function testElixirGas() public {
         uint256 balanceBefore = address(this).balance;
 
@@ -754,6 +754,13 @@ contract TestRabbitManager is Test {
 
         assertEq(address(this).balance, balanceBefore - (fee + 1));
         assertEq(externalAccount.balance, fee + 1);
+
+        uint256 newGas = 1000;
+
+        vm.prank(owner);
+        manager.updateGas(newGas);
+
+        assertEq(manager.elixirGas(), newGas);
     }
 
     /// @notice Unit test to check that the Elixir fee is applied correctly.
@@ -850,5 +857,11 @@ contract TestRabbitManager is Test {
         vm.prank(address(manager));
         vm.expectRevert(abi.encodeWithSelector(RabbitManager.InvalidSpotType.selector, spot));
         manager.processSpot(spot, "");
+    }
+
+    /// @notice Unit test to check the signer of a pool's router.
+    function testValidSigner() public {
+        (address router,,,) = manager.pools(1);
+        assertTrue(RabbitRouter(router).isValidSigner(externalAccount, 0));
     }
 }

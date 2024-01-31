@@ -114,6 +114,10 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
     /// @param hardcap The new hardcap of the pool.
     event PoolHardcapUpdated(uint256 indexed id, uint256 indexed hardcap);
 
+    /// @notice Emitted when the Elixir gas fee is  updated.
+    /// @param newGas The new gas fee.
+    event GasUpdated(uint256 indexed newGas);
+
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -523,6 +527,14 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
     /// @param amount The amount of token to rescue.
     function rescue(uint256 amount) external onlyOwner {
         token.safeTransfer(owner(), amount);
+    }
+
+    /// @notice Updates the Elixir gas fee.
+    /// @param _newGas The new gas fee.
+    function updateGas(uint256 _newGas) external onlyOwner {
+        elixirGas = _newGas;
+
+        emit GasUpdated(_newGas);
     }
 
     /*//////////////////////////////////////////////////////////////
