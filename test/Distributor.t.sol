@@ -60,6 +60,9 @@ contract TestDistributor is Test {
         // Deploy contract.
         rewards = new Distributor("Distributor", "1", signer);
 
+        vm.prank(0x1804c8AB1F12E6bbf3894d4083f33e07309d1f38);
+        rewards.transferOwnership(address(this));
+
         // Set the domain hash.
         eip712DomainHash = keccak256(
             abi.encode(
