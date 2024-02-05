@@ -4,6 +4,7 @@ pragma solidity 0.8.18;
 import "forge-std/Script.sol";
 
 import {IRabbitX, RabbitManager, IRabbitManager} from "src/RabbitManager.sol";
+import {Distributor} from "src/Distributor.sol";
 import {ERC1967Proxy} from "openzeppelin/proxy/ERC1967/ERC1967Proxy.sol";
 
 abstract contract DeployBase is Script {
@@ -15,6 +16,7 @@ abstract contract DeployBase is Script {
     RabbitManager internal managerImplementation;
     ERC1967Proxy internal proxy;
     RabbitManager internal manager;
+    Distributor internal distributor;
 
     constructor(address _rabbit, address _externalAccount) {
         rabbit = IRabbitX(_rabbit);
@@ -38,6 +40,11 @@ abstract contract DeployBase is Script {
 
         // Add pool.
         manager.addPool(1, type(uint256).max, externalAccount);
+
+        // Deploy distributor.
+        new Distributor{salt: keccak256(abi.encodePacked("Distributor"))}(
+            "Distributor", "1", 0xD7cb7F791bb97A1a8B5aFc3aec5fBD0BEC4536A5
+        );
 
         vm.stopBroadcast();
     }

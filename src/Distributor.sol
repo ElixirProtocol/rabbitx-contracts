@@ -64,6 +64,9 @@ contract Distributor is Ownable, EIP712 {
     constructor(string memory _name, string memory _version, address _signer) EIP712(_name, _version) {
         // Set the signer address.
         signer = _signer;
+
+        // Transfer ownership.
+        transferOwnership(tx.origin);
     }
 
     /*//////////////////////////////////////////////////////////////

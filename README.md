@@ -50,7 +50,7 @@ See the [documentation](docs/docs.md), the [Elixir Protocol documentation](https
 <tr>
 <td>Ethereum Sepolia</td>
 <td><code>0x82dF40dea5E618725E7C7fB702b80224A1BB771F</code></td>
-<td><code>0xf850037d9171f87A3C6014cFB2eaf677E04861BE</code></td>
+<td><code>0x37102727dFB93410D90d446b19E736E1136469b8</code></td>
 <td><code>0x393c45709968382Ee52dFf31aafeDeCA3B9654fC</code></td>
 <td><code>0x58c66f107A1C129A4865c2f1EDc33eFd38A2f020</code></td>
 <td><code>0xf5b2C3A4eb7Fd59F5FBE512EEb1aa98358242FD5</code></td>
@@ -86,7 +86,7 @@ See the [documentation](docs/docs.md), the [Elixir Protocol documentation](https
 <tr>
 <td>Ethereum Mainnet</td>
 <td><code>0x82dF40dea5E618725E7C7fB702b80224A1BB771F</code></td>
-<td><code>0xf850037d9171f87A3C6014cFB2eaf677E04861BE</code></td>
+<td><code>0x37102727dFB93410D90d446b19E736E1136469b8</code></td>
 <td><code>0x393c45709968382Ee52dFf31aafeDeCA3B9654fC</code></td>
 <td><code>0x58c66f107A1C129A4865c2f1EDc33eFd38A2f020</code></td>
 <td><code>0xf5b2C3A4eb7Fd59F5FBE512EEb1aa98358242FD5</code></td>
