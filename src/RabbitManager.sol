@@ -461,8 +461,10 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
             // Check that next spot in queue matches the given spot ID.
             if (spotId != queueUpTo + 1) revert InvalidSpot(spotId, queueUpTo);
 
-            // Process spot. Skips if fail or revert.
-            try this.processSpot(spot, response) {
+            // Process spot, skipping if fail or revert.
+            // Uses a maximum gas amount based on opcodes to prevent gas exhaustion.
+            // Acknowledges that `elixirGas` can change between a queue and unqueue.
+            try this.processSpot{gas: elixirGas}(spot, response) {
                 spot.state = SpotState.Executed;
             } catch {
                 spot.state = SpotState.Skipped;
