@@ -209,4 +209,23 @@ contract TestDistributor is Test {
         vm.expectRevert("Ownable: caller is not the owner");
         rewards.emergencyWithdraw(address(0), 0);
     }
+
+    function testDebug() public {
+        vm.createSelectFork("https://gateway.tenderly.co/public/sepolia");
+        Distributor distributor = Distributor(0x3f698bACDb93EA2C8Bd735ad4f9Eb58577534d08);
+
+        // Set the domain hash to match the contract onchain.
+        eip712DomainHash = keccak256(
+            abi.encode(TYPEHASH, keccak256(bytes("Distributor")), keccak256(bytes("1")), 11155111, address(distributor))
+        );
+
+        Claim memory claim = Claim({
+            user: 0xFAC9C60874eAB932FA424e38F79a8B54f333E544,
+            token: 0x800eC0D65adb70f0B69B7Db052C6bd89C2406aC4,
+            totalAmount: 150000000000000000
+        });
+
+        bytes32 digest = getTypedDataHash(claim);
+        console.logBytes32(digest);
+    }
 }
