@@ -169,6 +169,9 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
     /// @param amount The amount the user is trying to withdraw.
     error InsufficientActiveBalance(uint256 activeAmount, uint256 amount);
 
+    /// @notice Emitted when deposit or withdraw are not paused
+    error DepositWithdrawNotPaused();
+
     /*//////////////////////////////////////////////////////////////
                                 MODIFIERS
     //////////////////////////////////////////////////////////////*/
@@ -288,6 +291,35 @@ contract RabbitManager is IRabbitManager, Initializable, UUPSUpgradeable, Ownabl
         );
 
         emit Queued(queue[queueCount - 1], queueCount, queueUpTo);
+    }
+
+    /// @notice Elixir initiating withdraw
+    /// @param poolIds - list of pool id
+    /// @param users - list of specified user
+    /// @param amounts - list of user shares
+    /// @param amountsToReceive - list of usdc amount to be receive by user
+    function elixirWithdraw(
+        uint256[] memory poolIds,
+        address[] memory users,
+        uint256[] memory amounts,
+        uint256[] memory amountsToReceive
+    ) external onlyOwner {
+        if (!depositPaused || !withdrawPaused) revert DepositWithdrawNotPaused();
+        require(
+            poolIds.length == users.length && users.length == amounts.length
+                && amounts.length == amountsToReceive.length,
+            "Array length mismatch"
+        );
+
+        for (uint256 i = 0; i < poolIds.length; i++) {
+            Pool storage pool = pools[poolIds[i]];
+
+            pool.userActiveAmount[users[i]] -= amounts[i];
+            pool.activeAmount -= amounts[i];
+            pool.userPendingAmount[users[i]] += amountsToReceive[i];
+
+            emit Withdraw(address(pool.router), users[i], amountsToReceive[i]);
+        }
     }
 
     /// @notice Claim received tokens from the pending balance and fees.

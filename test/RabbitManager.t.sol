@@ -864,4 +864,56 @@ contract TestRabbitManager is Test {
         (address router,,,) = manager.pools(1);
         assertTrue(RabbitRouter(router).isValidSigner(externalAccount, 0));
     }
+
+    function testElixirWithdraw() public {
+        // deposit 100 USDT
+        vm.prank(owner);
+        manager.pause(false, false, false);
+
+        uint256 amount = 100 * 10 ** USDT.decimals();
+        deal(address(USDT), address(this), amount);
+        USDT.safeApprove(address(manager), amount);
+        manager.deposit{value: fee}(1, amount, address(this));
+
+        vm.prank(externalAccount);
+        manager.unqueue(1, abi.encode(IRabbitManager.DepositResponse({shares: amount})));
+
+        uint256 userActiveAmount = manager.getUserActiveAmount(1, address(this));
+        assertEq(userActiveAmount, amount);
+
+        (,, uint256 activeAmount,) = manager.pools(1);
+
+        assertEq(activeAmount, amount);
+
+        // pause deposit but not withdraw
+        vm.prank(owner);
+        manager.pause(true, false, false);
+        vm.expectRevert(RabbitManager.DepositWithdrawNotPaused.selector);
+
+        vm.prank(owner);
+        uint256[] memory poolIds = new uint256[](1);
+        poolIds[0] = 1;
+
+        address[] memory users = new address[](1);
+        users[0] = address(this);
+
+        uint256[] memory shares = new uint256[](1);
+        shares[0] = amount;
+
+        manager.elixirWithdraw(poolIds, users, shares, shares);
+
+        // pause both deposit and withdraw
+        vm.prank(owner);
+        manager.pause(true, true, false);
+
+        vm.prank(owner);
+        manager.elixirWithdraw(poolIds, users, shares, shares);
+
+        userActiveAmount = manager.getUserActiveAmount(1, address(this));
+        assertEq(userActiveAmount, 0);
+
+        (,, activeAmount,) = manager.pools(1);
+
+        assertEq(activeAmount, 0);
+    }
 }
