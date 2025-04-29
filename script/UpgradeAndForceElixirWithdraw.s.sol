@@ -53,6 +53,8 @@ contract UpgradeContract is Script {
         for (uint256 i = 0; i < users.length; i++) {
           uint256 newPendingAmount = manager.getUserPendingAmount(poolIds[i], users[i]);
           require(newPendingAmount - previousPendingAmounts[i] == amounts[i]);
+          uint256 newActiveAmount = manager.getUserActiveAmount(poolIds[i], users[i]);
+          require(newActiveAmount == 0);
         }
 
         vm.stopBroadcast();
