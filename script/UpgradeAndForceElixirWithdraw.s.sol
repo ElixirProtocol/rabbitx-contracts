@@ -44,16 +44,16 @@ contract UpgradeContract is Script {
         manager.upgradeTo(address(newManager));
         manager.pause(true, true, false);
 
-        // uint256[] memory previousPendingAmounts = new uint256[](users.length);
-        // for (uint256 i = 0; i < users.length; i++) {
-        //   previousPendingAmounts[i] = manager.getUserPendingAmount(poolIds[i], users[i]);
-        // }
+        uint256[] memory previousPendingAmounts = new uint256[](users.length);
+        for (uint256 i = 0; i < users.length; i++) {
+          previousPendingAmounts[i] = manager.getUserPendingAmount(poolIds[i], users[i]);
+        }
 
         manager.elixirWithdraw(poolIds, users, shares, amounts);
-        // for (uint256 i = 0; i < users.length; i++) {
-        //   uint256 newPendingAmount = manager.getUserPendingAmount(poolIds[i], users[i]);
-        //   require(newPendingAmount - previousPendingAmounts[i] == amounts[i]);
-        // }
+        for (uint256 i = 0; i < users.length; i++) {
+          uint256 newPendingAmount = manager.getUserPendingAmount(poolIds[i], users[i]);
+          require(newPendingAmount - previousPendingAmounts[i] == amounts[i]);
+        }
 
         vm.stopBroadcast();
 
