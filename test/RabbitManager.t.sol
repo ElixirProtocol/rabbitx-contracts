@@ -912,6 +912,9 @@ contract TestRabbitManager is Test {
         userActiveAmount = manager.getUserActiveAmount(1, address(this));
         assertEq(userActiveAmount, 0);
 
+        uint256 userPendingAmount = manager.getUserPendingAmount(1, address(this));
+        assertEq(userPendingAmount, amount);
+
         (,, activeAmount,) = manager.pools(1);
 
         assertEq(activeAmount, 0);
